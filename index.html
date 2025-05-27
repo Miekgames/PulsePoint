@@ -6,7 +6,7 @@
   <style>
     body { margin:0; font-family:sans-serif; background:#181c2b; color:#fff; }
     #loading { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0e1120; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:10; }
-    #main, #battle, #trade, #collection, #menu { display:none; }
+    #main, #battle, #trade, #collection, #menu, #dojo { display:none; }
     .btn { padding:12px 24px; margin:8px; background:linear-gradient(90deg,#f9d423,#ff4e50); color:#fff; border:none; border-radius:4px; font-size:1rem; cursor:pointer; font-weight:bold;}
     .btn:hover { background:linear-gradient(90deg,#36d1c4,#ff4e50);}
     .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff; transition:0.2s;}
@@ -14,13 +14,11 @@
     .flex { display:flex; flex-wrap:wrap; gap:10px; }
     .hidden {display:none;}
     #battle-log, .battle-log { max-height:120px; overflow:auto; background:#15172a; padding:8px; border-radius:8px; margin-top:10px; font-size:0.95em;}
-    /* Trade UI */
     #trade .trade-section { width:45%; }
     #trade .trade-section h4 { color:#f9d423; }
     #trade .other-section h4 { color:#36d1c4; }
     #trade-summary { margin:14px 0 4px 0; font-size:1.1em;}
     #trade-result { font-size:1.1em; height:24px;}
-    /* --- Modern Main Menu --- */
     .menu-redesign {
       display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh;
       background: rgba(24,28,43,0.97); border-radius: 18px; box-shadow: 0 6px 36px #000a;
@@ -58,6 +56,9 @@
     .battle-log { background: #15172a; border-radius: 8px; padding: 12px; max-width: 480px; min-height: 46px; margin-bottom: 20px; font-size: 1.07em; }
     .swap-btn { margin-top: 10px; }
     .back-btn { margin-top: 16px; }
+    /* Dojo UI */
+    #dojo-content .card { min-width:230px; }
+    #dojo-content select { width:140px; margin:7px 0; }
   </style>
 </head>
 <body>
@@ -73,6 +74,7 @@
   <div id="main">
     <div id="menu" class="menu-redesign">
       <h1 class="main-title">PulsePoint</h1>
+      <div id="player-level" style="margin-bottom:18px;font-size:1.15em;color:#36d1c4;"></div>
       <div class="menu-buttons">
         <button class="btn main-btn" onclick="showCollection()">
           <span class="icon">📁</span> My Collection
@@ -82,6 +84,9 @@
         </button>
         <button class="btn main-btn" onclick="showTrade()">
           <span class="icon">🔄</span> Trade
+        </button>
+        <button class="btn main-btn" id="dojoBtn" onclick="showDojo()" style="display:none;">
+          <span class="icon">⚡</span> Elemental Dojo
         </button>
         <button class="btn main-btn" onclick="resetGame()">
           <span class="icon">♻️</span> Reset Game
@@ -133,6 +138,11 @@
       <button class="btn" onclick="showMenu()">Back</button>
       <div id="trade-result"></div>
     </div>
+    <div id="dojo">
+      <h2>Elemental Dojo</h2>
+      <div id="dojo-content"></div>
+      <button class="btn" onclick="showMenu()">Back</button>
+    </div>
   </div>
   <script>
     // --- Loader ---
@@ -146,9 +156,10 @@
           document.getElementById("loading").style.display="none";
           document.getElementById("main").style.display="block";
           showMenu();
-        }, 600);
+        }, 200);
       }
     }
+
     // --- Card Data ---
     const pulseNames = [
       "Voltkit", "Aquaff", "Pyron", "Terrapod", "Frostle", "Lumina", "Gloomvine", "Spargle", "Ignix", "Toxine", 
@@ -176,15 +187,23 @@
     }
     const ALL_PULSES = [];
     for(let i=0;i<50;i++) ALL_PULSES.push(createPulse(i));
-    updateLoader();
     // --- Save/Load ---
-    function saveGame() { localStorage.setItem("pulse_save", JSON.stringify({myPulses,tradedPulses})); }
+    let myPulses=[], tradedPulses=[];
+    let playerLevel = 1, playerXP = 0, dojoUnlocked = false;
+    function saveGame() {
+      localStorage.setItem("pulse_save", JSON.stringify({
+        myPulses, tradedPulses, playerLevel, playerXP, dojoUnlocked
+      }));
+    }
     function loadGame() {
       let data = localStorage.getItem("pulse_save");
       if (data) {
         let obj = JSON.parse(data);
         myPulses = obj.myPulses||[];
         tradedPulses = obj.tradedPulses||[];
+        playerLevel = obj.playerLevel||1;
+        playerXP = obj.playerXP||0;
+        dojoUnlocked = obj.dojoUnlocked||false;
       } else {
         // Starter: 5 random
         myPulses = [];
@@ -196,15 +215,40 @@
         let tids = [];
         while (tids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)&&!tids.includes(n)) tids.push(n);}
         tids.forEach(i=>tradedPulses.push({...ALL_PULSES[i]}));
+        playerLevel = 1;
+        playerXP = 0;
+        dojoUnlocked = false;
         saveGame();
       }
     }
-    let myPulses=[], tradedPulses=[];
-    loadGame(); updateLoader();
+
+    // -- Player Level Progression --
+    function xpForNextPlayerLevel(lv) { return 30 + lv * 15; }
+    function addPlayerXP(amount) {
+      playerXP += amount;
+      while (playerXP >= xpForNextPlayerLevel(playerLevel)) {
+        playerXP -= xpForNextPlayerLevel(playerLevel);
+        playerLevel++;
+        alert(`You reached Player Level ${playerLevel}!`);
+        if (playerLevel === 5 && !dojoUnlocked) unlockDojo();
+      }
+      saveGame();
+      updatePlayerUI();
+    }
+    function unlockDojo() {
+      dojoUnlocked = true;
+      alert("Elemental Dojo Unlocked! You can now teach new moves to your Pulses.");
+      document.getElementById("dojoBtn").style.display = "";
+    }
+    function updatePlayerUI() {
+      document.getElementById("player-level").innerText = `Player Lv.${playerLevel} (${playerXP}/${xpForNextPlayerLevel(playerLevel)} XP)`;
+    }
 
     // --- Menu Handling ---
     function showMenu() {
       hideAll(); document.getElementById("menu").style.display="flex";
+      if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
+      updatePlayerUI();
     }
     function showCollection() {
       hideAll(); document.getElementById("collection").style.display="block"; renderMyCards();
@@ -215,8 +259,13 @@
     function showTrade() {
       hideAll(); document.getElementById("trade").style.display="block"; renderTrade();
     }
+    function showDojo() {
+      hideAll();
+      document.getElementById("dojo").style.display = "block";
+      renderDojo();
+    }
     function hideAll() {
-      ["menu","collection","battle","trade"].forEach(id=>document.getElementById(id).style.display="none");
+      ["menu","collection","battle","trade","dojo"].forEach(id=>document.getElementById(id).style.display="none");
     }
     function resetGame() {
       if(confirm("Reset your PulsePoint progress?")) {
@@ -296,6 +345,7 @@
       if (battle.oppHP<=0) {
         logBattle(`You defeated ${battle.opp.name}! +${10+2*battle.opp.level} XP`);
         addXP(battle.your, 10+2*battle.opp.level);
+        addPlayerXP(5); // award player XP per win!
         battle.inProgress=false;
         updateBattleUI();
         return;
@@ -420,7 +470,6 @@
         let offerCards = offer.map(i=>myPulses[i]);
         let requestCards = request.map(i=>tradedPulses[i]);
         // Remove from originals
-        // Sort descending so we remove higher indices first
         offer.sort((a,b)=>b-a).forEach(i=>myPulses.splice(i,1));
         request.sort((a,b)=>b-a).forEach(i=>tradedPulses.splice(i,1));
         // Add to each other's lists
@@ -434,9 +483,46 @@
       }
     }
 
+    // --- Elemental Dojo ---
+    const dojoMoves = [
+      {name: "Elemental Crush", power: 16},
+      {name: "Sonic Wave", power: 13},
+      {name: "Nature Heal", power: 0, heal: 20},
+      {name: "Blizzard Blast", power: 12},
+      {name: "Inferno Kick", power: 15}
+    ];
+    function renderDojo() {
+      let html = "<h3>Teach a new move:</h3><div class='flex'>";
+      myPulses.forEach((p, idx) => {
+        html += `<div class="card"><b>${p.name}</b> Lv.${p.level}<br>
+          Current Moves:<br>
+          1. ${p.attacks[0].name}<br>
+          2. ${p.attacks[1].name}<br>
+          <select id="moveSelect${idx}">${dojoMoves.map(
+            m => `<option value="${m.name}">${m.name}</option>`
+          ).join("")}</select>
+          <button onclick="teachMove(${idx})">Teach</button>
+        </div>`;
+      });
+      html += "</div>";
+      document.getElementById("dojo-content").innerHTML = html;
+    }
+    function teachMove(idx) {
+      let moveName = document.getElementById(`moveSelect${idx}`).value;
+      let move = dojoMoves.find(m => m.name === moveName);
+      if (!move) return;
+      myPulses[idx].attacks[1] = {name: move.name, power: move.power || 0};
+      saveGame();
+      renderMyCards();
+      renderDojo();
+      alert(`${myPulses[idx].name} learned ${move.name}!`);
+    }
+
+    // --- Initialize ---
+    loadGame();
     updateLoader();
-    // --- End ---
-    updateLoader();
+    updatePlayerUI();
+    if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
   </script>
 </body>
 </html>
