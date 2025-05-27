@@ -178,6 +178,10 @@
     </div>
   </div>
   <script>
+    loadGame();
+updateLoader();
+updatePlayerUI();
+if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     // --- Loader ---
     let LOADING_STEPS = 4;
     let loadedSteps = 0;
@@ -703,11 +707,6 @@
       document.getElementById("contractResultModal").style.display = "none";
       showMenu();
     }
-    // --- Initialize ---
-    loadGame();
-    updateLoader();
-    updatePlayerUI();
-    if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
   </script>
 </body>
 </html>
