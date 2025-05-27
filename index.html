@@ -7,13 +7,19 @@
     body { margin:0; font-family:sans-serif; background:#181c2b; color:#fff; }
     #loading { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0e1120; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:10; }
     #main, #battle, #trade, #collection, #menu { display:none; }
-    .btn { padding:12px 24px; margin:8px; background:#222e50; color:#fff; border:none; border-radius:4px; font-size:1rem; cursor:pointer; }
-    .btn:hover { background:#3a4b7a; }
-    .card { background:#222e50; border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px;}
-    .card.selected { border:2px solid #f6b93b; }
+    .btn { padding:12px 24px; margin:8px; background:linear-gradient(90deg,#f9d423,#ff4e50); color:#fff; border:none; border-radius:4px; font-size:1rem; cursor:pointer; font-weight:bold;}
+    .btn:hover { background:linear-gradient(90deg,#36d1c4,#ff4e50);}
+    .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff; transition:0.2s;}
+    .card.selected { border:3px solid #36d1c4; box-shadow: 0 0 12px #f9d423; }
     .flex { display:flex; flex-wrap:wrap; gap:10px; }
     .hidden {display:none;}
     #battle-log { max-height:120px; overflow:auto; background:#15172a; padding:8px; border-radius:8px; margin-top:10px; font-size:0.95em;}
+    /* Trade UI */
+    #trade .trade-section { width:45%; }
+    #trade .trade-section h4 { color:#f9d423; }
+    #trade .other-section h4 { color:#36d1c4; }
+    #trade-summary { margin:14px 0 4px 0; font-size:1.1em;}
+    #trade-result { font-size:1.1em; height:24px;}
   </style>
 </head>
 <body>
@@ -56,18 +62,25 @@
       <button class="btn" onclick="showMenu()">Back</button>
     </div>
     <div id="trade">
-      <h2>Trade Pulse</h2>
-      <div class="flex">
-        <div>
-          <h4>Your Cards</h4>
+      <h2 style="color:#ff4e50;">Trade Pulses</h2>
+      <div style="display:flex;justify-content:space-between;">
+        <div class="trade-section">
+          <h4>Your Pulses</h4>
           <div id="your-trade-cards"></div>
+          <h4>Offer these:</h4>
+          <div id="offer-selection"></div>
         </div>
-        <div>
-          <h4>Trade Market</h4>
+        <div class="trade-section other-section">
+          <h4>Market Pulses</h4>
           <div id="trade-market-cards"></div>
+          <h4>Request these:</h4>
+          <div id="request-selection"></div>
         </div>
       </div>
+      <div id="trade-summary"></div>
+      <button class="btn" id="proposeTradeBtn" onclick="proposeTrade()">Propose Trade</button>
       <button class="btn" onclick="showMenu()">Back</button>
+      <div id="trade-result"></div>
     </div>
   </div>
   <script>
@@ -95,7 +108,6 @@
     ];
     function randomFrom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
     function createPulse(id) {
-      // For variety, stats are pseudo random based on id
       let baseHealth = 45 + ((id*7)%40);
       let baseAttack = 15 + ((id*11)%25);
       let type = ["Electric","Water","Fire","Earth","Ice","Light","Dark","Plant","Poison","Air"][id%10];
@@ -263,38 +275,105 @@
       renderMyCards();
     }
     function xpForNextLevel(lv) { return 16+lv*8; }
-    // --- Trading System ---
+
+    // --- Enhanced Trading System ---
+    let offer = [];
+    let request = [];
     function renderTrade() {
+      offer = [];
+      request = [];
+      renderTradeUI();
+      document.getElementById('trade-result').innerText = '';
+    }
+    function renderTradeUI() {
+      // Render your pulses for offer selection
       let your = document.getElementById("your-trade-cards");
-      let market = document.getElementById("trade-market-cards");
-      your.innerHTML=""; market.innerHTML="";
+      your.innerHTML = "";
       myPulses.forEach((p,i)=>{
+        let selected = offer.includes(i) ? "selected" : "";
         let div = document.createElement("div");
-        div.className="card";
-        div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type:${p.type}<br><button class="btn" onclick="offerTrade(${i})">Offer</button>`;
+        div.className = "card " + selected;
+        div.onclick = function() { toggleOffer(i); };
+        div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
         your.appendChild(div);
       });
+
+      // Render market pulses for request selection
+      let market = document.getElementById("trade-market-cards");
+      market.innerHTML = "";
       tradedPulses.forEach((p,i)=>{
+        let selected = request.includes(i) ? "selected" : "";
         let div = document.createElement("div");
-        div.className="card";
-        div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type:${p.type}<br><button class="btn" onclick="tradeFor(${i})">Trade</button>`;
+        div.className = "card " + selected;
+        div.onclick = function() { toggleRequest(i); };
+        div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
         market.appendChild(div);
       });
+
+      // Show selected offers/requests
+      document.getElementById("offer-selection").innerHTML = offer.length > 0
+        ? offer.map(idx=>myPulses[idx].name).join(", ")
+        : "<span style='color:#ccc'>[none]</span>";
+      document.getElementById("request-selection").innerHTML = request.length > 0
+        ? request.map(idx=>tradedPulses[idx].name).join(", ")
+        : "<span style='color:#ccc'>[none]</span>";
+
+      let summary = "";
+      if (offer.length === 0 || request.length === 0)
+        summary = "<span style='color:#faa;'>Select at least one from each side to trade.</span>";
+      else if (offer.length === request.length)
+        summary = "You are proposing an even trade: <b>"+offer.length+"</b> for <b>"+request.length+"</b>.";
+      else
+        summary = "You are proposing an <b>"+offer.length+"</b> for <b>"+request.length+"</b> trade.";
+      document.getElementById("trade-summary").innerHTML = summary;
     }
-    function offerTrade(idx) {
-      // Remove from myPulses, add to market
-      if (myPulses.length<=1) { alert("You must keep at least 1 Pulse."); return; }
-      tradedPulses.push(myPulses[idx]);
-      myPulses.splice(idx,1);
-      saveGame(); renderTrade();
+    function toggleOffer(idx) {
+      if (offer.includes(idx)) offer = offer.filter(i=>i!==idx);
+      else offer.push(idx);
+      renderTradeUI();
     }
-    function tradeFor(idx) {
-      // Remove from market, add to myPulses
-      if (myPulses.length>=10) { alert("Max 10 Pulses in collection."); return; }
-      myPulses.push(tradedPulses[idx]);
-      tradedPulses.splice(idx,1);
-      saveGame(); renderTrade();
+    function toggleRequest(idx) {
+      if (request.includes(idx)) request = request.filter(i=>i!==idx);
+      else request.push(idx);
+      renderTradeUI();
     }
+    function proposeTrade() {
+      if (offer.length === 0 || request.length === 0) {
+        document.getElementById('trade-result').innerText = 'Select at least one pulse from each side!';
+        return;
+      }
+      // Prevent trading all the player's Pulses away
+      if (myPulses.length - offer.length < 1) {
+        document.getElementById('trade-result').innerText = 'You must keep at least 1 Pulse!';
+        return;
+      }
+      // Prevent collection overflow
+      if (myPulses.length - offer.length + request.length > 10) {
+        document.getElementById('trade-result').innerText = 'Max 10 Pulses in collection!';
+        return;
+      }
+      // "Hidden value": random, but weighted fairer if trade is balanced
+      let fairness = 0.5 + 0.15 * (offer.length - request.length) / Math.max(offer.length, request.length);
+      let roll = Math.random();
+      if (roll < fairness) {
+        // Trade accepted: swap
+        let offerCards = offer.map(i=>myPulses[i]);
+        let requestCards = request.map(i=>tradedPulses[i]);
+        // Remove from originals
+        // Sort descending so we remove higher indices first
+        offer.sort((a,b)=>b-a).forEach(i=>myPulses.splice(i,1));
+        request.sort((a,b)=>b-a).forEach(i=>tradedPulses.splice(i,1));
+        // Add to each other's lists
+        myPulses = myPulses.concat(requestCards);
+        tradedPulses = tradedPulses.concat(offerCards);
+        saveGame();
+        document.getElementById('trade-result').innerHTML = "<span style='color:#3ee86a'>Trade accepted!</span>";
+        renderTrade();
+      } else {
+        document.getElementById('trade-result').innerHTML = "<span style='color:#f43'>Trade rejected! Try a fairer offer.</span>";
+      }
+    }
+
     updateLoader();
     // --- End ---
     updateLoader();
