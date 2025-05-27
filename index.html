@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>PulsePoint Card Game</title>
+  <meta name="description" content="PulsePoint - A strategy card game by Miekgames. Battle, trade, and evolve your Pulses!">
+  <meta name="keywords" content="PulsePoint, card game, strategy, trade, battle, evolve">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { margin:0; font-family:sans-serif; background:#181c2b; color:#fff; }
     #loading { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0e1120; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:10; }
     #main, #battle, #trade, #collection, #menu, #dojo { display:none; }
     .btn { padding:12px 24px; margin:8px; background:linear-gradient(90deg,#f9d423,#ff4e50); color:#fff; border:none; border-radius:4px; font-size:1rem; cursor:pointer; font-weight:bold;}
+    .btn:focus { outline:2px solid #36d1c4; }
     .btn:hover { background:linear-gradient(90deg,#36d1c4,#ff4e50);}
     .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff; }
     .card.selected { border:3px solid #36d1c4; box-shadow: 0 0 12px #f9d423; }
@@ -36,9 +40,8 @@
       box-shadow: 0 2px 18px #2224; font-weight: bold; display: flex; align-items: center; gap: 16px;
       transition: transform 0.1s, box-shadow 0.2s;
     }
-    .main-btn:hover { transform: scale(1.06); box-shadow: 0 4px 24px #ff4e5055; }
+    .main-btn:hover, .main-btn:focus { transform: scale(1.06); box-shadow: 0 4px 24px #ff4e5055; }
     .icon { font-size: 1.1em; }
-    /* --- Modern Battle Menu --- */
     .battle-redesign { display: flex; flex-direction: column; align-items: center; }
     .battle-title { color: #f9d423; margin-bottom: 18px; font-size: 2.2em; }
     .battle-arena {
@@ -56,133 +59,128 @@
     .battle-log { background: #15172a; border-radius: 8px; padding: 12px; max-width: 480px; min-height: 46px; margin-bottom: 20px; font-size: 1.07em; }
     .swap-btn { margin-top: 10px; }
     .back-btn { margin-top: 16px; }
-    /* Dojo UI */
     #dojo-content .card { min-width:230px; }
     #dojo-content select { width:140px; margin:7px 0; }
-    /* --- Contracts Modal --- */
-    #contractsModal {
+    /* Loader bar moved here */
+    #loaderbar { background:#333;width:300px;height:12px;border-radius:8px;overflow:hidden; }
+    #loaderfill { background:#f6b93b;width:0;height:100%; transition:width 0.4s;}
+    /* Modal improvements */
+    #contractsModal, #contractResultModal {
       display: none; position: fixed; top: 18vh; left: 50%; transform: translateX(-50%);
       width: 420px; background: #222e50; border: 3px solid #f9d423; border-radius: 18px;
       box-shadow: 0 4px 24px #000b; z-index: 2000; color: #fff; padding: 32px 30px 24px 30px;
       text-align: center;
     }
+    #contractsModal[aria-hidden="false"], #contractResultModal[aria-hidden="false"] {
+      display: block;
+    }
     #contractsModal h2 { color: #ff4e50; margin-bottom: 18px; }
     #contractsModal .contract-boss { color: #f9d423; font-size: 1.22em; margin: 8px 0; }
     #contractsModal .contract-desc { color: #fff; font-size: 1.06em; margin-bottom: 10px; }
     #contractsModal .contract-reward { color: #36d1c4; margin-bottom: 20px; }
-
-    #contractResultModal {
-      display:none; position:fixed; top: 18vh; left:50%; transform:translateX(-50%);
-      width:420px; background:#222e50; border:3px solid #f9d423; border-radius:18px; box-shadow:0 4px 24px #000b; 
-      z-index:3000; color:#fff; padding:32px 30px 24px 30px; text-align:center;
-    }
     #contractResultModal h2 { color: #f9d423;}
+    /* Responsive Design */
+    @media (max-width: 750px) {
+      .main-title { font-size: 2em; }
+      .menu-redesign { padding: 30px 10px; }
+      .battle-arena { flex-direction: column; gap: 16px; }
+      .creature-card { min-width: 150px; padding: 12px 8px; }
+      #contractsModal, #contractResultModal { width: 95vw; padding: 8vw 5vw; }
+    }
   </style>
 </head>
 <body>
-  <div id="loading">
-    <h1>PulsePoint</h1>
-    <p>Loading game assets...</p>
-    <div id="loaderbar" style="background:#333;width:300px;height:12px;border-radius:8px;overflow:hidden;">
-      <div id="loaderfill" style="background:#f6b93b;width:0;height:100%;"></div>
+  <header>
+    <h1 class="visually-hidden">PulsePoint Card Game by Miekgames</h1>
+  </header>
+  <main id="main-content">
+    <div id="loading" role="alert" aria-live="polite">
+      <h1>PulsePoint</h1>
+      <p>Loading game assets...</p>
+      <div id="loaderbar">
+        <div id="loaderfill"></div>
+      </div>
+      <p style="color:#aaa;margin-top:10px;">A strategy card game by Miekgames</p>
     </div>
-    <p style="color:#aaa;margin-top:10px;">A strategy card game by Miekgames</p>
-  </div>
-  
-  <div id="main">
-    <div id="menu" class="menu-redesign">
-      <h1 class="main-title">PulsePoint</h1>
-      <div id="player-level" style="margin-bottom:18px;font-size:1.15em;color:#36d1c4;"></div>
-      <div class="menu-buttons">
-        <button class="btn main-btn" onclick="showCollection()">
-          <span class="icon">📁</span> My Collection
-        </button>
-        <button class="btn main-btn" onclick="showBattle()">
-          <span class="icon">⚔️</span> Battle
-        </button>
-        <button class="btn main-btn" onclick="showTrade()">
-          <span class="icon">🔄</span> Trade
-        </button>
-        <button class="btn main-btn" id="dojoBtn" onclick="showDojo()" style="display:none;">
-          <span class="icon">⚡</span> Elemental Dojo
-        </button>
-        <button class="btn main-btn" onclick="showContracts()">
-          <span class="icon">📝</span> Contracts
-        </button>
-        <button class="btn main-btn" onclick="resetGame()">
-          <span class="icon">♻️</span> Reset Game
-        </button>
+    <div id="main">
+      <section id="menu" class="menu-redesign" aria-label="Main Menu">
+        <h1 class="main-title">PulsePoint</h1>
+        <div id="player-level" style="margin-bottom:18px;font-size:1.15em;color:#36d1c4;"></div>
+        <nav class="menu-buttons" aria-label="Game Menu">
+          <button class="btn main-btn" onclick="showCollection()" aria-label="Go to My Collection"><span class="icon">📁</span> My Collection</button>
+          <button class="btn main-btn" onclick="showBattle()" aria-label="Go to Battle"><span class="icon">⚔️</span> Battle</button>
+          <button class="btn main-btn" onclick="showTrade()" aria-label="Go to Trade"><span class="icon">🔄</span> Trade</button>
+          <button class="btn main-btn" id="dojoBtn" onclick="showDojo()" style="display:none;" aria-label="Enter Elemental Dojo"><span class="icon">⚡</span> Elemental Dojo</button>
+          <button class="btn main-btn" onclick="showContracts()" aria-label="Contracts Board"><span class="icon">📝</span> Contracts</button>
+          <button class="btn main-btn" onclick="resetGame()" aria-label="Reset Game Progress"><span class="icon">♻️</span> Reset Game</button>
+        </nav>
+      </section>
+      <section id="collection" aria-label="Collection">
+        <h2>My Pulse Collection</h2>
+        <div id="my-cards" class="flex"></div>
+        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
+      </section>
+      <section id="battle" class="battle-redesign" aria-label="Battle Arena">
+        <h2 class="battle-title">Battle Arena</h2>
+        <div class="battle-arena">
+          <div class="creature-card player-card">
+            <h3>Your Pulse</h3>
+            <div id="your-battle-card"></div>
+            <button class="btn swap-btn" onclick="pickBattleCard()" aria-label="Change Pulse">Change</button>
+          </div>
+          <div class="vs-label">VS</div>
+          <div class="creature-card opponent-card">
+            <h3>Opponent Pulse</h3>
+            <div id="opp-battle-card"></div>
+            <button class="btn swap-btn" onclick="startBattle()" aria-label="New Opponent">New Opponent</button>
+          </div>
+        </div>
+        <div id="battle-controls" class="battle-controls"></div>
+        <div id="battle-log" class="battle-log"></div>
+        <button class="btn back-btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
+      </section>
+      <section id="trade" aria-label="Trade Pulses">
+        <h2 style="color:#ff4e50;">Trade Pulses</h2>
+        <div style="display:flex;justify-content:space-between;">
+          <div class="trade-section">
+            <h4>Your Pulses</h4>
+            <div id="your-trade-cards"></div>
+            <h4>Offer these:</h4>
+            <div id="offer-selection"></div>
+          </div>
+          <div class="trade-section other-section">
+            <h4>Market Pulses</h4>
+            <div id="trade-market-cards"></div>
+            <h4>Request these:</h4>
+            <div id="request-selection"></div>
+          </div>
+        </div>
+        <div id="trade-summary"></div>
+        <button class="btn" id="proposeTradeBtn" onclick="proposeTrade()" aria-label="Propose Trade">Propose Trade</button>
+        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
+        <div id="trade-result"></div>
+      </section>
+      <section id="dojo" aria-label="Elemental Dojo">
+        <h2>Elemental Dojo</h2>
+        <div id="dojo-content"></div>
+        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
+      </section>
+      <!-- CONTRACTS MODAL -->
+      <div id="contractsModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <h2>Contract Board</h2>
+        <div id="contractDetails"></div>
+        <button class="btn" id="fightContractBtn" style="margin:12px 0 6px 0;">Fight!</button>
+        <button class="btn" onclick="closeContracts()">Close</button>
+      </div>
+      <div id="contractResultModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <h2 id="contractResultTitle"></h2>
+        <div id="contractResultText"></div>
+        <button class="btn" onclick="closeContractResult()">OK</button>
       </div>
     </div>
-    <div id="collection">
-      <h2>My Pulse Collection</h2>
-      <div id="my-cards" class="flex"></div>
-      <button class="btn" onclick="showMenu()">Back</button>
-    </div>
-    <div id="battle" class="battle-redesign">
-      <h2 class="battle-title">Battle Arena</h2>
-      <div class="battle-arena">
-        <div class="creature-card player-card">
-          <h3>Your Pulse</h3>
-          <div id="your-battle-card"></div>
-          <button class="btn swap-btn" onclick="pickBattleCard()">Change</button>
-        </div>
-        <div class="vs-label">VS</div>
-        <div class="creature-card opponent-card">
-          <h3>Opponent Pulse</h3>
-          <div id="opp-battle-card"></div>
-          <button class="btn swap-btn" onclick="startBattle()">New Opponent</button>
-        </div>
-      </div>
-      <div id="battle-controls" class="battle-controls"></div>
-      <div id="battle-log" class="battle-log"></div>
-      <button class="btn back-btn" onclick="showMenu()">Back</button>
-    </div>
-    <div id="trade">
-      <h2 style="color:#ff4e50;">Trade Pulses</h2>
-      <div style="display:flex;justify-content:space-between;">
-        <div class="trade-section">
-          <h4>Your Pulses</h4>
-          <div id="your-trade-cards"></div>
-          <h4>Offer these:</h4>
-          <div id="offer-selection"></div>
-        </div>
-        <div class="trade-section other-section">
-          <h4>Market Pulses</h4>
-          <div id="trade-market-cards"></div>
-          <h4>Request these:</h4>
-          <div id="request-selection"></div>
-        </div>
-      </div>
-      <div id="trade-summary"></div>
-      <button class="btn" id="proposeTradeBtn" onclick="proposeTrade()">Propose Trade</button>
-      <button class="btn" onclick="showMenu()">Back</button>
-      <div id="trade-result"></div>
-    </div>
-    <div id="dojo">
-      <h2>Elemental Dojo</h2>
-      <div id="dojo-content"></div>
-      <button class="btn" onclick="showMenu()">Back</button>
-    </div>
-    <!-- === CONTRACTS MODAL === -->
-    <div id="contractsModal">
-      <h2>Contract Board</h2>
-      <div id="contractDetails"></div>
-      <button class="btn" id="fightContractBtn" style="margin:12px 0 6px 0;">Fight!</button>
-      <button class="btn" onclick="closeContracts()">Close</button>
-    </div>
-    <div id="contractResultModal">
-      <h2 id="contractResultTitle"></h2>
-      <div id="contractResultText"></div>
-      <button class="btn" onclick="closeContractResult()">OK</button>
-    </div>
-  </div>
+  </main>
   <script>
-    loadGame();
-updateLoader();
-updatePlayerUI();
-if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
-    // --- Loader ---
+    // Loader/Initial
     let LOADING_STEPS = 4;
     let loadedSteps = 0;
     function updateLoader() {
@@ -197,7 +195,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       }
     }
 
-    // --- Card Data ---
+    // Card Data
     const pulseNames = [
       "Voltkit", "Aquaff", "Pyron", "Terrapod", "Frostle", "Lumina", "Gloomvine", "Spargle", "Ignix", "Toxine", 
       "Vibrune", "Quillace", "Barkoon", "Singeon", "Ferrox", "Bloomble", "Drizzle", "Shadowl", "Shellix", "Gustine",
@@ -225,7 +223,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     const ALL_PULSES = [];
     for(let i=0;i<50;i++) ALL_PULSES.push(createPulse(i));
 
-    // --- Save/Load ---
+    // Save/Load
     let myPulses=[], tradedPulses=[];
     let playerLevel = 1, playerXP = 0, dojoUnlocked = false;
     function saveGame() {
@@ -243,13 +241,11 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
         playerXP = obj.playerXP||0;
         dojoUnlocked = obj.dojoUnlocked||false;
       } else {
-        // Starter: 5 random
         myPulses = [];
         let ids = [];
         while (ids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)) ids.push(n);}
         ids.forEach(i=>myPulses.push({...ALL_PULSES[i]}));
         tradedPulses = [];
-        // Market: 5 random
         let tids = [];
         while (tids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)&&!tids.includes(n)) tids.push(n);}
         tids.forEach(i=>tradedPulses.push({...ALL_PULSES[i]}));
@@ -260,7 +256,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       }
     }
 
-    // -- Player Level Progression --
+    // Player Level Progression
     function xpForNextPlayerLevel(lv) { return 30 + lv * 15; }
     function addPlayerXP(amount) {
       playerXP += amount;
@@ -282,7 +278,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       document.getElementById("player-level").innerText = `Player Lv.${playerLevel} (${playerXP}/${xpForNextPlayerLevel(playerLevel)} XP)`;
     }
 
-    // --- Menu Handling ---
+    // Menu Handling
     function showMenu() {
       hideAll(); document.getElementById("menu").style.display="flex";
       if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
@@ -313,7 +309,8 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
         showMenu();
       }
     }
-    // --- Render Collection ---
+
+    // Render Collection
     function renderMyCards() {
       let c = document.getElementById("my-cards"); c.innerHTML="";
       myPulses.forEach((p,i)=>{
@@ -332,7 +329,8 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
         c.appendChild(div);
       });
     }
-    // --- Battle System ---
+
+    // Battle System
     let battle = { your:null, opp:null, yourHP:0, oppHP:0, turn:0, inProgress:false, contractMode:false };
     function setupBattle() {
       if (!battle.your) pickBattleCard();
@@ -343,15 +341,17 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       let names = myPulses.map((p,i)=>`${i+1}. ${p.name} Lv.${p.level}`).join("\n");
       let idx = prompt("Pick your Pulse for battle (1-"+myPulses.length+"):");
       idx = parseInt(idx)-1;
-      if (myPulses[idx]) {
-        battle.your = myPulses[idx];
-        battle.yourHP = battle.your.health + 4*battle.your.level;
-        updateBattleUI();
+      if (isNaN(idx) || !myPulses[idx]) {
+        alert("Invalid choice.");
+        return;
       }
+      battle.your = myPulses[idx];
+      battle.yourHP = battle.your.health + 4*battle.your.level;
+      updateBattleUI();
     }
     function startBattle() {
       let opp = {...randomFrom(ALL_PULSES)};
-      opp.level = Math.max(1, Math.floor(Math.random()*battle.your.level+1));
+      opp.level = Math.max(1, Math.floor(Math.random()*(battle.your?.level||1)+1));
       opp.xp = 0;
       battle.opp = opp;
       battle.oppHP = opp.health + 4*opp.level;
@@ -365,7 +365,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       document.getElementById("your-battle-card").innerHTML = battle.your?`${battle.your.name} (Lv.${battle.your.level}) HP:${battle.yourHP}`:"[Pick]";
       document.getElementById("opp-battle-card").innerHTML = battle.opp?`${battle.opp.name} (Lv.${battle.opp.level}) HP:${battle.oppHP}`:"[Start]";
       let controls = "";
-      if (battle.inProgress) {
+      if (battle.inProgress && battle.your) {
         controls += `<button class="btn" onclick="battleAttack(0)">${battle.your.attacks[0].name}</button>`;
         controls += `<button class="btn" onclick="battleAttack(1)">${battle.your.attacks[1].name}</button>`;
       }
@@ -378,7 +378,6 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     }
     // --- Contracts Battle Integration ---
     let contractResultPending = false;
-    // We'll override battleAttack below to support contractMode!
     function battleAttack(idx) {
       if (!battle.inProgress) return;
       let dmg = battle.your.attack + battle.your.attacks[idx].power + Math.floor(battle.your.level/2);
@@ -387,7 +386,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       if (battle.oppHP<=0) {
         logBattle(`You defeated ${battle.opp.name}! +${10+2*battle.opp.level} XP`);
         addXP(battle.your, 10+2*battle.opp.level);
-        addPlayerXP(5); // award player XP per win!
+        addPlayerXP(5);
         battle.inProgress=false;
         updateBattleUI();
         if (battle.contractMode && !contractResultPending) {
@@ -414,7 +413,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       }, 900);
       updateBattleUI();
     }
-    // === EVOLUTION SYSTEM ===
+    // EVOLUTION SYSTEM
     function addXP(pulse, amt) {
       pulse.xp += amt;
       while (pulse.xp >= xpForNextLevel(pulse.level)) {
@@ -422,7 +421,6 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
         pulse.level++;
         pulse.health += 7; pulse.attack += 2;
         logBattle(`${pulse.name} leveled up! Now Lv.${pulse.level}`);
-        // Evolution at level 10
         if (pulse.level === 10 && !pulse.evolved) {
           pulse.evolved = true;
           pulse.name = pulse.name + " Evo";
@@ -436,7 +434,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     }
     function xpForNextLevel(lv) { return 16+lv*8; }
 
-    // --- Enhanced Trading System ---
+    // Enhanced Trading System
     let offer = [];
     let request = [];
     function renderTrade() {
@@ -446,31 +444,30 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       document.getElementById('trade-result').innerText = '';
     }
     function renderTradeUI() {
-      // Render your pulses for offer selection
       let your = document.getElementById("your-trade-cards");
       your.innerHTML = "";
       myPulses.forEach((p,i)=>{
         let selected = offer.includes(i) ? "selected" : "";
         let div = document.createElement("div");
         div.className = "card " + selected;
+        div.tabIndex = 0;
         div.onclick = function() { toggleOffer(i); };
         div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
         your.appendChild(div);
       });
 
-      // Render market pulses for request selection
       let market = document.getElementById("trade-market-cards");
       market.innerHTML = "";
       tradedPulses.forEach((p,i)=>{
         let selected = request.includes(i) ? "selected" : "";
         let div = document.createElement("div");
         div.className = "card " + selected;
+        div.tabIndex = 0;
         div.onclick = function() { toggleRequest(i); };
         div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
         market.appendChild(div);
       });
 
-      // Show selected offers/requests
       document.getElementById("offer-selection").innerHTML = offer.length > 0
         ? offer.map(idx=>myPulses[idx].name).join(", ")
         : "<span style='color:#ccc'>[none]</span>";
@@ -502,27 +499,21 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
         document.getElementById('trade-result').innerText = 'Select at least one pulse from each side!';
         return;
       }
-      // Prevent trading all the player's Pulses away
       if (myPulses.length - offer.length < 1) {
         document.getElementById('trade-result').innerText = 'You must keep at least 1 Pulse!';
         return;
       }
-      // Prevent collection overflow
       if (myPulses.length - offer.length + request.length > 10) {
         document.getElementById('trade-result').innerText = 'Max 10 Pulses in collection!';
         return;
       }
-      // "Hidden value": random, but weighted fairer if trade is balanced
       let fairness = 0.5 + 0.15 * (offer.length - request.length) / Math.max(offer.length, request.length);
       let roll = Math.random();
       if (roll < fairness) {
-        // Trade accepted: swap
         let offerCards = offer.map(i=>myPulses[i]);
         let requestCards = request.map(i=>tradedPulses[i]);
-        // Remove from originals
         offer.sort((a,b)=>b-a).forEach(i=>myPulses.splice(i,1));
         request.sort((a,b)=>b-a).forEach(i=>tradedPulses.splice(i,1));
-        // Add to each other's lists
         myPulses = myPulses.concat(requestCards);
         tradedPulses = tradedPulses.concat(offerCards);
         saveGame();
@@ -533,7 +524,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       }
     }
 
-    // --- Elemental Dojo ---
+    // Elemental Dojo
     const dojoMoves = [
       {name: "Elemental Crush", power: 16},
       {name: "Sonic Wave", power: 13},
@@ -568,8 +559,7 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
       alert(`${myPulses[idx].name} learned ${move.name}!`);
     }
 
-    // === CONTRACTS FEATURE ===
-
+    // CONTRACTS FEATURE
     const contractBossList = [
       {
         boss: {
@@ -633,7 +623,6 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
 
     function showContracts() {
       hideAll();
-      // Pick random contract from fixed list
       currentContractObj = contractBossList[Math.floor(Math.random() * contractBossList.length)];
       document.getElementById("contractDetails").innerHTML = `
         <div class="contract-boss"><b>${currentContractObj.boss.name}</b> (Lv.${currentContractObj.boss.level} ${currentContractObj.boss.type})</div>
@@ -642,20 +631,19 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
         <div id="contractResult" style="margin-top:10px;"></div>
       `;
       document.getElementById("fightContractBtn").style.display = "";
-      document.getElementById("contractsModal").style.display = "block";
+      document.getElementById("contractsModal").setAttribute("aria-hidden","false");
     }
     function closeContracts() {
-      document.getElementById("contractsModal").style.display = "none";
+      document.getElementById("contractsModal").setAttribute("aria-hidden","true");
       showMenu();
     }
     document.getElementById("fightContractBtn").onclick = function() {
-      document.getElementById("contractsModal").style.display = "none";
+      document.getElementById("contractsModal").setAttribute("aria-hidden","true");
       setupContractBattle();
     };
 
     function setupContractBattle() {
-      // Use the existing battle system, but pass in the boss as battle.opp and flag as contract battle
-      battle.your = null; // User must pick as usual
+      battle.your = null;
       contractBossPulse = {...currentContractObj.boss};
       battle.opp = contractBossPulse;
       battle.oppHP = contractBossPulse.health + 4 * contractBossPulse.level;
@@ -669,13 +657,11 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
 
     function handleContractResult(won) {
       setTimeout(function() {
-        document.getElementById("contractResultModal").style.display = "block";
+        document.getElementById("contractResultModal").setAttribute("aria-hidden","false");
         if (won) {
           document.getElementById("contractResultTitle").innerText = "Victory!";
-          // Grant rewards
           addPlayerXP(currentContractObj.reward.xp);
           if (myPulses.length < 10) {
-            // Give themed pulse if possible, else random
             let rewardPulse = ALL_PULSES.find(p => p.type === currentContractObj.boss.type) || {...ALL_PULSES[Math.floor(Math.random()*ALL_PULSES.length)]};
             rewardPulse = {...rewardPulse, level: 3 + Math.floor(Math.random()*3)};
             myPulses.push(rewardPulse);
@@ -704,9 +690,15 @@ if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     }
 
     function closeContractResult() {
-      document.getElementById("contractResultModal").style.display = "none";
+      document.getElementById("contractResultModal").setAttribute("aria-hidden","true");
       showMenu();
     }
+
+    // Initial Load
+    loadGame();
+    updateLoader();
+    updatePlayerUI();
+    if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
   </script>
 </body>
 </html>
