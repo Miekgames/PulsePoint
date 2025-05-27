@@ -13,13 +13,51 @@
     .card.selected { border:3px solid #36d1c4; box-shadow: 0 0 12px #f9d423; }
     .flex { display:flex; flex-wrap:wrap; gap:10px; }
     .hidden {display:none;}
-    #battle-log { max-height:120px; overflow:auto; background:#15172a; padding:8px; border-radius:8px; margin-top:10px; font-size:0.95em;}
+    #battle-log, .battle-log { max-height:120px; overflow:auto; background:#15172a; padding:8px; border-radius:8px; margin-top:10px; font-size:0.95em;}
     /* Trade UI */
     #trade .trade-section { width:45%; }
     #trade .trade-section h4 { color:#f9d423; }
     #trade .other-section h4 { color:#36d1c4; }
     #trade-summary { margin:14px 0 4px 0; font-size:1.1em;}
     #trade-result { font-size:1.1em; height:24px;}
+    /* --- Modern Main Menu --- */
+    .menu-redesign {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh;
+      background: rgba(24,28,43,0.97); border-radius: 18px; box-shadow: 0 6px 36px #000a;
+      padding: 50px 32px;
+    }
+    .main-title {
+      font-size: 3em; letter-spacing: 0.05em; margin-bottom: 36px; color: #ff4e50; text-shadow: 0 2px 12px #222;
+    }
+    .menu-buttons {
+      display: flex; flex-direction: column; gap: 18px; width: 100%;
+    }
+    .main-btn {
+      font-size: 1.3em; padding: 18px 32px; border-radius: 12px;
+      background: linear-gradient(90deg,#36d1c4,#ff4e50); color: #fff; border: none;
+      box-shadow: 0 2px 18px #2224; font-weight: bold; display: flex; align-items: center; gap: 16px;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    .main-btn:hover { transform: scale(1.06); box-shadow: 0 4px 24px #ff4e5055; }
+    .icon { font-size: 1.1em; }
+    /* --- Modern Battle Menu --- */
+    .battle-redesign { display: flex; flex-direction: column; align-items: center; }
+    .battle-title { color: #f9d423; margin-bottom: 18px; font-size: 2.2em; }
+    .battle-arena {
+      display: flex; align-items: flex-start; justify-content: center; gap: 48px; margin-bottom: 24px;
+    }
+    .creature-card {
+      background: linear-gradient(120deg,#222e50 80%,#36d1c4 100%);
+      border-radius: 14px; box-shadow: 0 2px 16px #0006;
+      padding: 24px 28px; color: #fff; min-width: 220px; text-align: center;
+    }
+    .player-card { border: 2.5px solid #f9d423; }
+    .opponent-card { border: 2.5px solid #ff4e50; }
+    .vs-label { font-size: 2em; color: #fff; margin: 0 18px; align-self: center; }
+    .battle-controls { margin: 18px 0; display: flex; gap: 14px; justify-content: center; }
+    .battle-log { background: #15172a; border-radius: 8px; padding: 12px; max-width: 480px; min-height: 46px; margin-bottom: 20px; font-size: 1.07em; }
+    .swap-btn { margin-top: 10px; }
+    .back-btn { margin-top: 16px; }
   </style>
 </head>
 <body>
@@ -33,33 +71,46 @@
   </div>
   
   <div id="main">
-    <div id="menu">
-      <h1>PulsePoint</h1>
-      <button class="btn" onclick="showCollection()">My Collection</button>
-      <button class="btn" onclick="showBattle()">Battle</button>
-      <button class="btn" onclick="showTrade()">Trade</button>
-      <button class="btn" onclick="resetGame()">Reset Game</button>
+    <div id="menu" class="menu-redesign">
+      <h1 class="main-title">PulsePoint</h1>
+      <div class="menu-buttons">
+        <button class="btn main-btn" onclick="showCollection()">
+          <span class="icon">📁</span> My Collection
+        </button>
+        <button class="btn main-btn" onclick="showBattle()">
+          <span class="icon">⚔️</span> Battle
+        </button>
+        <button class="btn main-btn" onclick="showTrade()">
+          <span class="icon">🔄</span> Trade
+        </button>
+        <button class="btn main-btn" onclick="resetGame()">
+          <span class="icon">♻️</span> Reset Game
+        </button>
+      </div>
     </div>
     <div id="collection">
       <h2>My Pulse Collection</h2>
       <div id="my-cards" class="flex"></div>
       <button class="btn" onclick="showMenu()">Back</button>
     </div>
-    <div id="battle">
-      <h2>Battle Arena</h2>
-      <div>
-        <strong>Your Pulse:</strong>
-        <span id="your-battle-card"></span>
-        <button class="btn" onclick="pickBattleCard()">Change</button>
+    <div id="battle" class="battle-redesign">
+      <h2 class="battle-title">Battle Arena</h2>
+      <div class="battle-arena">
+        <div class="creature-card player-card">
+          <h3>Your Pulse</h3>
+          <div id="your-battle-card"></div>
+          <button class="btn swap-btn" onclick="pickBattleCard()">Change</button>
+        </div>
+        <div class="vs-label">VS</div>
+        <div class="creature-card opponent-card">
+          <h3>Opponent Pulse</h3>
+          <div id="opp-battle-card"></div>
+          <button class="btn swap-btn" onclick="startBattle()">New Opponent</button>
+        </div>
       </div>
-      <div>
-        <strong>Opponent Pulse:</strong>
-        <span id="opp-battle-card"></span>
-        <button class="btn" onclick="startBattle()">New Opponent</button>
-      </div>
-      <div id="battle-controls"></div>
-      <div id="battle-log"></div>
-      <button class="btn" onclick="showMenu()">Back</button>
+      <div id="battle-controls" class="battle-controls"></div>
+      <div id="battle-log" class="battle-log"></div>
+      <button class="btn back-btn" onclick="showMenu()">Back</button>
     </div>
     <div id="trade">
       <h2 style="color:#ff4e50;">Trade Pulses</h2>
@@ -153,13 +204,13 @@
 
     // --- Menu Handling ---
     function showMenu() {
-      hideAll(); document.getElementById("menu").style.display="block";
+      hideAll(); document.getElementById("menu").style.display="flex";
     }
     function showCollection() {
       hideAll(); document.getElementById("collection").style.display="block"; renderMyCards();
     }
     function showBattle() {
-      hideAll(); document.getElementById("battle").style.display="block"; setupBattle();
+      hideAll(); document.getElementById("battle").style.display="flex"; setupBattle();
     }
     function showTrade() {
       hideAll(); document.getElementById("trade").style.display="block"; renderTrade();
@@ -263,6 +314,7 @@
       }, 900);
       updateBattleUI();
     }
+    // === EVOLUTION SYSTEM ===
     function addXP(pulse, amt) {
       pulse.xp += amt;
       while (pulse.xp >= xpForNextLevel(pulse.level)) {
@@ -270,6 +322,14 @@
         pulse.level++;
         pulse.health += 7; pulse.attack += 2;
         logBattle(`${pulse.name} leveled up! Now Lv.${pulse.level}`);
+        // Evolution at level 10
+        if (pulse.level === 10 && !pulse.evolved) {
+          pulse.evolved = true;
+          pulse.name = pulse.name + " Evo";
+          pulse.health += 20;
+          pulse.attack += 10;
+          logBattle(`${pulse.name} has evolved!`);
+        }
       }
       saveGame();
       renderMyCards();
