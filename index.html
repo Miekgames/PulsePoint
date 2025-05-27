@@ -180,8 +180,9 @@
     </div>
   </main>
   <script>
+    window.onload = function() {
     // Loader/Initial
-    let LOADING_STEPS = 1;
+    let LOADING_STEPS = 4;
     let loadedSteps = 0;
     function updateLoader() {
       loadedSteps++;
@@ -699,6 +700,7 @@
     updateLoader();
     updatePlayerUI();
     if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
+    };
   </script>
 </body>
 </html>
