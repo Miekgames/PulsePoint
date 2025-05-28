@@ -13,7 +13,7 @@
     .btn { padding:12px 24px; margin:8px; background:linear-gradient(90deg,#f9d423,#ff4e50); color:#fff; border:none; border-radius:4px; font-size:1rem; cursor:pointer; font-weight:bold;}
     .btn:focus { outline:2px solid #36d1c4; }
     .btn:hover { background:linear-gradient(90deg,#36d1c4,#ff4e50);}
-    .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff; }
+    .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff;}
     .card.selected { border:3px solid #36d1c4; box-shadow: 0 0 12px #f9d423; }
     .flex { display:flex; flex-wrap:wrap; gap:10px; }
     .hidden {display:none;}
@@ -61,10 +61,8 @@
     .back-btn { margin-top: 16px; }
     #dojo-content .card { min-width:230px; }
     #dojo-content select { width:140px; margin:7px 0; }
-    /* Loader bar moved here */
     #loaderbar { background:#333;width:300px;height:12px;border-radius:8px;overflow:hidden; }
     #loaderfill { background:#f6b93b;width:0;height:100%; transition:width 0.4s;}
-    /* Modal improvements */
     #contractsModal, #contractResultModal {
       display: none; position: fixed; top: 18vh; left: 50%; transform: translateX(-50%);
       width: 420px; background: #222e50; border: 3px solid #f9d423; border-radius: 18px;
@@ -79,7 +77,6 @@
     #contractsModal .contract-desc { color: #fff; font-size: 1.06em; margin-bottom: 10px; }
     #contractsModal .contract-reward { color: #36d1c4; margin-bottom: 20px; }
     #contractResultModal h2 { color: #f9d423;}
-    /* Responsive Design */
     @media (max-width: 750px) {
       .main-title { font-size: 2em; }
       .menu-redesign { padding: 30px 10px; }
@@ -180,526 +177,519 @@
     </div>
   </main>
   <script>
+    // Loader logic: simple bar fill then show main interface
     window.onload = function() {
-    // Loader/Initial
-    let LOADING_STEPS = 4;
-    let loadedSteps = 0;
-    function updateLoader() {
-      loadedSteps++;
-      document.getElementById("loaderfill").style.width = (loadedSteps/LOADING_STEPS*100)+"%";
-      if (loadedSteps>=LOADING_STEPS) {
-        setTimeout(()=> {
-          document.getElementById("loading").style.display="none";
-          document.getElementById("main").style.display="block";
+      setTimeout(() => {
+        document.getElementById("loaderfill").style.width = "100%";
+        setTimeout(() => {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("main").style.display = "block";
           showMenu();
-        }, 200);
-      }
-    }
+        }, 400);
+      }, 200);
 
-    // Card Data
-    const pulseNames = [
-      "Voltkit", "Aquaff", "Pyron", "Terrapod", "Frostle", "Lumina", "Gloomvine", "Spargle", "Ignix", "Toxine", 
-      "Vibrune", "Quillace", "Barkoon", "Singeon", "Ferrox", "Bloomble", "Drizzle", "Shadowl", "Shellix", "Gustine",
-      "Buzzlet", "Pebblit", "Blazic", "Glacielle", "Thundra", "Spindle", "Duskrill", "Gloworm", "Petalyn", "Crestal",
-      "Shadewisp", "Scorchy", "Funglow", "Twiluna", "Mossaur", "Brineer", "Pyrite", "Dawnbud", "Frostip", "Tideetle",
-      "Emberfin", "Tempest", "Verdra", "Spikoon", "Mistral", "Chillisk", "Gloomgle", "Luster", "Sandrip", "Stormule"
-    ];
-    function randomFrom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
-    function createPulse(id) {
-      let baseHealth = 45 + ((id*7)%40);
-      let baseAttack = 15 + ((id*11)%25);
-      let type = ["Electric","Water","Fire","Earth","Ice","Light","Dark","Plant","Poison","Air"][id%10];
-      let attacks = [
-        {name: type+" Burst", power: 9+id%5},
-        {name: ["Quick Jab","Power Slam","Pulse Shot","Echo Strike","Lifedrain"][id%5], power: 5+(id*3)%8}
+      // Game Data and Logic
+      const pulseNames = [
+        "Voltkit", "Aquaff", "Pyron", "Terrapod", "Frostle", "Lumina", "Gloomvine", "Spargle", "Ignix", "Toxine", 
+        "Vibrune", "Quillace", "Barkoon", "Singeon", "Ferrox", "Bloomble", "Drizzle", "Shadowl", "Shellix", "Gustine",
+        "Buzzlet", "Pebblit", "Blazic", "Glacielle", "Thundra", "Spindle", "Duskrill", "Gloworm", "Petalyn", "Crestal",
+        "Shadewisp", "Scorchy", "Funglow", "Twiluna", "Mossaur", "Brineer", "Pyrite", "Dawnbud", "Frostip", "Tideetle",
+        "Emberfin", "Tempest", "Verdra", "Spikoon", "Mistral", "Chillisk", "Gloomgle", "Luster", "Sandrip", "Stormule"
       ];
-      return {
-        id, name:pulseNames[id], type,
-        health: baseHealth,
-        attack: baseAttack,
-        attacks,
-        level:1, xp:0
-      }
-    }
-    const ALL_PULSES = [];
-    for(let i=0;i<50;i++) ALL_PULSES.push(createPulse(i));
-
-    // Save/Load
-    let myPulses=[], tradedPulses=[];
-    let playerLevel = 1, playerXP = 0, dojoUnlocked = false;
-    function saveGame() {
-      localStorage.setItem("pulse_save", JSON.stringify({
-        myPulses, tradedPulses, playerLevel, playerXP, dojoUnlocked
-      }));
-    }
-    function loadGame() {
-      let data = localStorage.getItem("pulse_save");
-      if (data) {
-        let obj = JSON.parse(data);
-        myPulses = obj.myPulses||[];
-        tradedPulses = obj.tradedPulses||[];
-        playerLevel = obj.playerLevel||1;
-        playerXP = obj.playerXP||0;
-        dojoUnlocked = obj.dojoUnlocked||false;
-      } else {
-        myPulses = [];
-        let ids = [];
-        while (ids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)) ids.push(n);}
-        ids.forEach(i=>myPulses.push({...ALL_PULSES[i]}));
-        tradedPulses = [];
-        let tids = [];
-        while (tids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)&&!tids.includes(n)) tids.push(n);}
-        tids.forEach(i=>tradedPulses.push({...ALL_PULSES[i]}));
-        playerLevel = 1;
-        playerXP = 0;
-        dojoUnlocked = false;
-        saveGame();
-      }
-    }
-
-    // Player Level Progression
-    function xpForNextPlayerLevel(lv) { return 30 + lv * 15; }
-    function addPlayerXP(amount) {
-      playerXP += amount;
-      while (playerXP >= xpForNextPlayerLevel(playerLevel)) {
-        playerXP -= xpForNextPlayerLevel(playerLevel);
-        playerLevel++;
-        alert(`You reached Player Level ${playerLevel}!`);
-        if (playerLevel === 5 && !dojoUnlocked) unlockDojo();
-      }
-      saveGame();
-      updatePlayerUI();
-    }
-    function unlockDojo() {
-      dojoUnlocked = true;
-      alert("Elemental Dojo Unlocked! You can now teach new moves to your Pulses.");
-      document.getElementById("dojoBtn").style.display = "";
-    }
-    function updatePlayerUI() {
-      document.getElementById("player-level").innerText = `Player Lv.${playerLevel} (${playerXP}/${xpForNextPlayerLevel(playerLevel)} XP)`;
-    }
-
-    // Menu Handling
-    function showMenu() {
-      hideAll(); document.getElementById("menu").style.display="flex";
-      if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
-      updatePlayerUI();
-    }
-    function showCollection() {
-      hideAll(); document.getElementById("collection").style.display="block"; renderMyCards();
-    }
-    function showBattle() {
-      hideAll(); document.getElementById("battle").style.display="flex"; setupBattle();
-    }
-    function showTrade() {
-      hideAll(); document.getElementById("trade").style.display="block"; renderTrade();
-    }
-    function showDojo() {
-      hideAll();
-      document.getElementById("dojo").style.display = "block";
-      renderDojo();
-    }
-    function hideAll() {
-      ["menu","collection","battle","trade","dojo"].forEach(id=>document.getElementById(id).style.display="none");
-    }
-    function resetGame() {
-      if(confirm("Reset your PulsePoint progress?")) {
-        localStorage.removeItem("pulse_save");
-        loadGame();
-        alert("Progress reset!");
-        showMenu();
-      }
-    }
-
-    // Render Collection
-    function renderMyCards() {
-      let c = document.getElementById("my-cards"); c.innerHTML="";
-      myPulses.forEach((p,i)=>{
-        let div = document.createElement("div");
-        div.className="card";
-        div.innerHTML = `
-          <b>${p.name}</b> <span style="float:right;font-size:.93em;">Lv.${p.level}</span><br>
-          <i>${p.type}</i><br>
-          HP: ${p.health} | ATK: ${p.attack}<br>
-          <span style="font-size:.93em;">
-            1. ${p.attacks[0].name} (${p.attacks[0].power})<br>
-            2. ${p.attacks[1].name} (${p.attacks[1].power})<br>
-          </span>
-          XP: ${p.xp}/${xpForNextLevel(p.level)}
-        `;
-        c.appendChild(div);
-      });
-    }
-
-    // Battle System
-    let battle = { your:null, opp:null, yourHP:0, oppHP:0, turn:0, inProgress:false, contractMode:false };
-    function setupBattle() {
-      if (!battle.your) pickBattleCard();
-      if (!battle.opp) startBattle();
-      updateBattleUI();
-    }
-    function pickBattleCard() {
-      let names = myPulses.map((p,i)=>`${i+1}. ${p.name} Lv.${p.level}`).join("\n");
-      let idx = prompt("Pick your Pulse for battle (1-"+myPulses.length+"):");
-      idx = parseInt(idx)-1;
-      if (isNaN(idx) || !myPulses[idx]) {
-        alert("Invalid choice.");
-        return;
-      }
-      battle.your = myPulses[idx];
-      battle.yourHP = battle.your.health + 4*battle.your.level;
-      updateBattleUI();
-    }
-    function startBattle() {
-      let opp = {...randomFrom(ALL_PULSES)};
-      opp.level = Math.max(1, Math.floor(Math.random()*(battle.your?.level||1)+1));
-      opp.xp = 0;
-      battle.opp = opp;
-      battle.oppHP = opp.health + 4*opp.level;
-      battle.turn = 0;
-      battle.inProgress = true;
-      battle.contractMode = false;
-      logBattle(`A wild ${opp.name} (Lv.${opp.level}) appears!`);
-      updateBattleUI();
-    }
-    function updateBattleUI() {
-      document.getElementById("your-battle-card").innerHTML = battle.your?`${battle.your.name} (Lv.${battle.your.level}) HP:${battle.yourHP}`:"[Pick]";
-      document.getElementById("opp-battle-card").innerHTML = battle.opp?`${battle.opp.name} (Lv.${battle.opp.level}) HP:${battle.oppHP}`:"[Start]";
-      let controls = "";
-      if (battle.inProgress && battle.your) {
-        controls += `<button class="btn" onclick="battleAttack(0)">${battle.your.attacks[0].name}</button>`;
-        controls += `<button class="btn" onclick="battleAttack(1)">${battle.your.attacks[1].name}</button>`;
-      }
-      document.getElementById("battle-controls").innerHTML = controls;
-    }
-    function logBattle(txt) {
-      let log = document.getElementById("battle-log");
-      log.innerHTML += txt+"<br>";
-      log.scrollTop = log.scrollHeight;
-    }
-    // --- Contracts Battle Integration ---
-    let contractResultPending = false;
-    function battleAttack(idx) {
-      if (!battle.inProgress) return;
-      let dmg = battle.your.attack + battle.your.attacks[idx].power + Math.floor(battle.your.level/2);
-      battle.oppHP -= dmg;
-      logBattle(`You used ${battle.your.attacks[idx].name}! (${dmg} dmg)`);
-      if (battle.oppHP<=0) {
-        logBattle(`You defeated ${battle.opp.name}! +${10+2*battle.opp.level} XP`);
-        addXP(battle.your, 10+2*battle.opp.level);
-        addPlayerXP(5);
-        battle.inProgress=false;
-        updateBattleUI();
-        if (battle.contractMode && !contractResultPending) {
-          contractResultPending = true; setTimeout(()=>{ handleContractResult(true); contractResultPending=false; }, 700);
+      function randomFrom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+      function createPulse(id) {
+        let baseHealth = 45 + ((id*7)%40);
+        let baseAttack = 15 + ((id*11)%25);
+        let type = ["Electric","Water","Fire","Earth","Ice","Light","Dark","Plant","Poison","Air"][id%10];
+        let attacks = [
+          {name: type+" Burst", power: 9+id%5},
+          {name: ["Quick Jab","Power Slam","Pulse Shot","Echo Strike","Lifedrain"][id%5], power: 5+(id*3)%8}
+        ];
+        return {
+          id, name:pulseNames[id], type,
+          health: baseHealth,
+          attack: baseAttack,
+          attacks,
+          level:1, xp:0
         }
-        return;
       }
-      // Opponent turn
-      setTimeout(()=>{
-        let odx = Math.random()>0.5?0:1;
-        let odmg = battle.opp.attack + battle.opp.attacks[odx].power + Math.floor(battle.opp.level/2);
-        battle.yourHP -= odmg;
-        logBattle(`${battle.opp.name} used ${battle.opp.attacks[odx].name}! (${odmg} dmg)`);
-        if (battle.yourHP<=0) {
-          logBattle(`Your ${battle.your.name} fainted!`);
+      const ALL_PULSES = [];
+      for(let i=0;i<50;i++) ALL_PULSES.push(createPulse(i));
+
+      // Save/Load
+      let myPulses=[], tradedPulses=[];
+      let playerLevel = 1, playerXP = 0, dojoUnlocked = false;
+      function saveGame() {
+        localStorage.setItem("pulse_save", JSON.stringify({
+          myPulses, tradedPulses, playerLevel, playerXP, dojoUnlocked
+        }));
+      }
+      function loadGame() {
+        let data = localStorage.getItem("pulse_save");
+        if (data) {
+          let obj = JSON.parse(data);
+          myPulses = obj.myPulses||[];
+          tradedPulses = obj.tradedPulses||[];
+          playerLevel = obj.playerLevel||1;
+          playerXP = obj.playerXP||0;
+          dojoUnlocked = obj.dojoUnlocked||false;
+        } else {
+          myPulses = [];
+          let ids = [];
+          while (ids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)) ids.push(n);}
+          ids.forEach(i=>myPulses.push({...ALL_PULSES[i]}));
+          tradedPulses = [];
+          let tids = [];
+          while (tids.length<5) { let n=Math.floor(Math.random()*50); if (!ids.includes(n)&&!tids.includes(n)) tids.push(n);}
+          tids.forEach(i=>tradedPulses.push({...ALL_PULSES[i]}));
+          playerLevel = 1;
+          playerXP = 0;
+          dojoUnlocked = false;
+          saveGame();
+        }
+      }
+
+      // Player Level Progression
+      function xpForNextPlayerLevel(lv) { return 30 + lv * 15; }
+      function addPlayerXP(amount) {
+        playerXP += amount;
+        while (playerXP >= xpForNextPlayerLevel(playerLevel)) {
+          playerXP -= xpForNextPlayerLevel(playerLevel);
+          playerLevel++;
+          alert(`You reached Player Level ${playerLevel}!`);
+          if (playerLevel === 5 && !dojoUnlocked) unlockDojo();
+        }
+        saveGame();
+        updatePlayerUI();
+      }
+      function unlockDojo() {
+        dojoUnlocked = true;
+        alert("Elemental Dojo Unlocked! You can now teach new moves to your Pulses.");
+        document.getElementById("dojoBtn").style.display = "";
+      }
+      function updatePlayerUI() {
+        document.getElementById("player-level").innerText = `Player Lv.${playerLevel} (${playerXP}/${xpForNextPlayerLevel(playerLevel)} XP)`;
+      }
+
+      // Menu Handling
+      window.showMenu = function() {
+        hideAll(); document.getElementById("menu").style.display="flex";
+        if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
+        updatePlayerUI();
+      }
+      window.showCollection = function() {
+        hideAll(); document.getElementById("collection").style.display="block"; renderMyCards();
+      }
+      window.showBattle = function() {
+        hideAll(); document.getElementById("battle").style.display="flex"; setupBattle();
+      }
+      window.showTrade = function() {
+        hideAll(); document.getElementById("trade").style.display="block"; renderTrade();
+      }
+      window.showDojo = function() {
+        hideAll();
+        document.getElementById("dojo").style.display = "block";
+        renderDojo();
+      }
+      function hideAll() {
+        ["menu","collection","battle","trade","dojo"].forEach(id=>document.getElementById(id).style.display="none");
+      }
+      window.resetGame = function() {
+        if(confirm("Reset your PulsePoint progress?")) {
+          localStorage.removeItem("pulse_save");
+          loadGame();
+          alert("Progress reset!");
+          showMenu();
+        }
+      }
+
+      // Render Collection
+      function renderMyCards() {
+        let c = document.getElementById("my-cards"); c.innerHTML="";
+        myPulses.forEach((p,i)=>{
+          let div = document.createElement("div");
+          div.className="card";
+          div.innerHTML = `
+            <b>${p.name}</b> <span style="float:right;font-size:.93em;">Lv.${p.level}</span><br>
+            <i>${p.type}</i><br>
+            HP: ${p.health} | ATK: ${p.attack}<br>
+            <span style="font-size:.93em;">
+              1. ${p.attacks[0].name} (${p.attacks[0].power})<br>
+              2. ${p.attacks[1].name} (${p.attacks[1].power})<br>
+            </span>
+            XP: ${p.xp}/${xpForNextLevel(p.level)}
+          `;
+          c.appendChild(div);
+        });
+      }
+
+      // Battle System
+      let battle = { your:null, opp:null, yourHP:0, oppHP:0, turn:0, inProgress:false, contractMode:false };
+      function setupBattle() {
+        if (!battle.your) pickBattleCard();
+        if (!battle.opp) startBattle();
+        updateBattleUI();
+      }
+      window.pickBattleCard = function() {
+        let names = myPulses.map((p,i)=>`${i+1}. ${p.name} Lv.${p.level}`).join("\n");
+        let idx = prompt("Pick your Pulse for battle (1-"+myPulses.length+"):");
+        idx = parseInt(idx)-1;
+        if (isNaN(idx) || !myPulses[idx]) {
+          alert("Invalid choice.");
+          return;
+        }
+        battle.your = myPulses[idx];
+        battle.yourHP = battle.your.health + 4*battle.your.level;
+        updateBattleUI();
+      }
+      window.startBattle = function() {
+        let opp = {...randomFrom(ALL_PULSES)};
+        opp.level = Math.max(1, Math.floor(Math.random()*(battle.your?.level||1)+1));
+        opp.xp = 0;
+        battle.opp = opp;
+        battle.oppHP = opp.health + 4*opp.level;
+        battle.turn = 0;
+        battle.inProgress = true;
+        battle.contractMode = false;
+        logBattle(`A wild ${opp.name} (Lv.${opp.level}) appears!`);
+        updateBattleUI();
+      }
+      function updateBattleUI() {
+        document.getElementById("your-battle-card").innerHTML = battle.your?`${battle.your.name} (Lv.${battle.your.level}) HP:${battle.yourHP}`:"[Pick]";
+        document.getElementById("opp-battle-card").innerHTML = battle.opp?`${battle.opp.name} (Lv.${battle.opp.level}) HP:${battle.oppHP}`:"[Start]";
+        let controls = "";
+        if (battle.inProgress && battle.your) {
+          controls += `<button class="btn" onclick="battleAttack(0)">${battle.your.attacks[0].name}</button>`;
+          controls += `<button class="btn" onclick="battleAttack(1)">${battle.your.attacks[1].name}</button>`;
+        }
+        document.getElementById("battle-controls").innerHTML = controls;
+      }
+      function logBattle(txt) {
+        let log = document.getElementById("battle-log");
+        log.innerHTML += txt+"<br>";
+        log.scrollTop = log.scrollHeight;
+      }
+      // --- Contracts Battle Integration ---
+      let contractResultPending = false;
+      window.battleAttack = function(idx) {
+        if (!battle.inProgress) return;
+        let dmg = battle.your.attack + battle.your.attacks[idx].power + Math.floor(battle.your.level/2);
+        battle.oppHP -= dmg;
+        logBattle(`You used ${battle.your.attacks[idx].name}! (${dmg} dmg)`);
+        if (battle.oppHP<=0) {
+          logBattle(`You defeated ${battle.opp.name}! +${10+2*battle.opp.level} XP`);
+          addXP(battle.your, 10+2*battle.opp.level);
+          addPlayerXP(5);
           battle.inProgress=false;
           updateBattleUI();
           if (battle.contractMode && !contractResultPending) {
-            contractResultPending = true; setTimeout(()=>{ handleContractResult(false); contractResultPending=false; }, 700);
+            contractResultPending = true; setTimeout(()=>{ handleContractResult(true); contractResultPending=false; }, 700);
           }
           return;
         }
+        // Opponent turn
+        setTimeout(()=>{
+          let odx = Math.random()>0.5?0:1;
+          let odmg = battle.opp.attack + battle.opp.attacks[odx].power + Math.floor(battle.opp.level/2);
+          battle.yourHP -= odmg;
+          logBattle(`${battle.opp.name} used ${battle.opp.attacks[odx].name}! (${odmg} dmg)`);
+          if (battle.yourHP<=0) {
+            logBattle(`Your ${battle.your.name} fainted!`);
+            battle.inProgress=false;
+            updateBattleUI();
+            if (battle.contractMode && !contractResultPending) {
+              contractResultPending = true; setTimeout(()=>{ handleContractResult(false); contractResultPending=false; }, 700);
+            }
+            return;
+          }
+          updateBattleUI();
+        }, 900);
         updateBattleUI();
-      }, 900);
-      updateBattleUI();
-    }
-    // EVOLUTION SYSTEM
-    function addXP(pulse, amt) {
-      pulse.xp += amt;
-      while (pulse.xp >= xpForNextLevel(pulse.level)) {
-        pulse.xp -= xpForNextLevel(pulse.level);
-        pulse.level++;
-        pulse.health += 7; pulse.attack += 2;
-        logBattle(`${pulse.name} leveled up! Now Lv.${pulse.level}`);
-        if (pulse.level === 10 && !pulse.evolved) {
-          pulse.evolved = true;
-          pulse.name = pulse.name + " Evo";
-          pulse.health += 20;
-          pulse.attack += 10;
-          logBattle(`${pulse.name} has evolved!`);
+      }
+      // EVOLUTION SYSTEM
+      function addXP(pulse, amt) {
+        pulse.xp += amt;
+        while (pulse.xp >= xpForNextLevel(pulse.level)) {
+          pulse.xp -= xpForNextLevel(pulse.level);
+          pulse.level++;
+          pulse.health += 7; pulse.attack += 2;
+          logBattle(`${pulse.name} leveled up! Now Lv.${pulse.level}`);
+          if (pulse.level === 10 && !pulse.evolved) {
+            pulse.evolved = true;
+            pulse.name = pulse.name + " Evo";
+            pulse.health += 20;
+            pulse.attack += 10;
+            logBattle(`${pulse.name} has evolved!`);
+          }
+        }
+        saveGame();
+        renderMyCards();
+      }
+      function xpForNextLevel(lv) { return 16+lv*8; }
+
+      // Enhanced Trading System
+      let offer = [];
+      let request = [];
+      function renderTrade() {
+        offer = [];
+        request = [];
+        renderTradeUI();
+        document.getElementById('trade-result').innerText = '';
+      }
+      function renderTradeUI() {
+        let your = document.getElementById("your-trade-cards");
+        your.innerHTML = "";
+        myPulses.forEach((p,i)=>{
+          let selected = offer.includes(i) ? "selected" : "";
+          let div = document.createElement("div");
+          div.className = "card " + selected;
+          div.tabIndex = 0;
+          div.onclick = function() { toggleOffer(i); };
+          div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
+          your.appendChild(div);
+        });
+
+        let market = document.getElementById("trade-market-cards");
+        market.innerHTML = "";
+        tradedPulses.forEach((p,i)=>{
+          let selected = request.includes(i) ? "selected" : "";
+          let div = document.createElement("div");
+          div.className = "card " + selected;
+          div.tabIndex = 0;
+          div.onclick = function() { toggleRequest(i); };
+          div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
+          market.appendChild(div);
+        });
+
+        document.getElementById("offer-selection").innerHTML = offer.length > 0
+          ? offer.map(idx=>myPulses[idx].name).join(", ")
+          : "<span style='color:#ccc'>[none]</span>";
+        document.getElementById("request-selection").innerHTML = request.length > 0
+          ? request.map(idx=>tradedPulses[idx].name).join(", ")
+          : "<span style='color:#ccc'>[none]</span>";
+
+        let summary = "";
+        if (offer.length === 0 || request.length === 0)
+          summary = "<span style='color:#faa;'>Select at least one from each side to trade.</span>";
+        else if (offer.length === request.length)
+          summary = "You are proposing an even trade: <b>"+offer.length+"</b> for <b>"+request.length+"</b>.";
+        else
+          summary = "You are proposing an <b>"+offer.length+"</b> for <b>"+request.length+"</b> trade.";
+        document.getElementById("trade-summary").innerHTML = summary;
+      }
+      function toggleOffer(idx) {
+        if (offer.includes(idx)) offer = offer.filter(i=>i!==idx);
+        else offer.push(idx);
+        renderTradeUI();
+      }
+      function toggleRequest(idx) {
+        if (request.includes(idx)) request = request.filter(i=>i!==idx);
+        else request.push(idx);
+        renderTradeUI();
+      }
+      window.proposeTrade = function() {
+        if (offer.length === 0 || request.length === 0) {
+          document.getElementById('trade-result').innerText = 'Select at least one pulse from each side!';
+          return;
+        }
+        if (myPulses.length - offer.length < 1) {
+          document.getElementById('trade-result').innerText = 'You must keep at least 1 Pulse!';
+          return;
+        }
+        if (myPulses.length - offer.length + request.length > 10) {
+          document.getElementById('trade-result').innerText = 'Max 10 Pulses in collection!';
+          return;
+        }
+        let fairness = 0.5 + 0.15 * (offer.length - request.length) / Math.max(offer.length, request.length);
+        let roll = Math.random();
+        if (roll < fairness) {
+          let offerCards = offer.map(i=>myPulses[i]);
+          let requestCards = request.map(i=>tradedPulses[i]);
+          offer.sort((a,b)=>b-a).forEach(i=>myPulses.splice(i,1));
+          request.sort((a,b)=>b-a).forEach(i=>tradedPulses.splice(i,1));
+          myPulses = myPulses.concat(requestCards);
+          tradedPulses = tradedPulses.concat(offerCards);
+          saveGame();
+          document.getElementById('trade-result').innerHTML = "<span style='color:#3ee86a'>Trade accepted!</span>";
+          renderTrade();
+        } else {
+          document.getElementById('trade-result').innerHTML = "<span style='color:#f43'>Trade rejected! Try a fairer offer.</span>";
         }
       }
-      saveGame();
-      renderMyCards();
-    }
-    function xpForNextLevel(lv) { return 16+lv*8; }
 
-    // Enhanced Trading System
-    let offer = [];
-    let request = [];
-    function renderTrade() {
-      offer = [];
-      request = [];
-      renderTradeUI();
-      document.getElementById('trade-result').innerText = '';
-    }
-    function renderTradeUI() {
-      let your = document.getElementById("your-trade-cards");
-      your.innerHTML = "";
-      myPulses.forEach((p,i)=>{
-        let selected = offer.includes(i) ? "selected" : "";
-        let div = document.createElement("div");
-        div.className = "card " + selected;
-        div.tabIndex = 0;
-        div.onclick = function() { toggleOffer(i); };
-        div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
-        your.appendChild(div);
-      });
-
-      let market = document.getElementById("trade-market-cards");
-      market.innerHTML = "";
-      tradedPulses.forEach((p,i)=>{
-        let selected = request.includes(i) ? "selected" : "";
-        let div = document.createElement("div");
-        div.className = "card " + selected;
-        div.tabIndex = 0;
-        div.onclick = function() { toggleRequest(i); };
-        div.innerHTML = `<b>${p.name}</b> Lv.${p.level}<br>Type: ${p.type}`;
-        market.appendChild(div);
-      });
-
-      document.getElementById("offer-selection").innerHTML = offer.length > 0
-        ? offer.map(idx=>myPulses[idx].name).join(", ")
-        : "<span style='color:#ccc'>[none]</span>";
-      document.getElementById("request-selection").innerHTML = request.length > 0
-        ? request.map(idx=>tradedPulses[idx].name).join(", ")
-        : "<span style='color:#ccc'>[none]</span>";
-
-      let summary = "";
-      if (offer.length === 0 || request.length === 0)
-        summary = "<span style='color:#faa;'>Select at least one from each side to trade.</span>";
-      else if (offer.length === request.length)
-        summary = "You are proposing an even trade: <b>"+offer.length+"</b> for <b>"+request.length+"</b>.";
-      else
-        summary = "You are proposing an <b>"+offer.length+"</b> for <b>"+request.length+"</b> trade.";
-      document.getElementById("trade-summary").innerHTML = summary;
-    }
-    function toggleOffer(idx) {
-      if (offer.includes(idx)) offer = offer.filter(i=>i!==idx);
-      else offer.push(idx);
-      renderTradeUI();
-    }
-    function toggleRequest(idx) {
-      if (request.includes(idx)) request = request.filter(i=>i!==idx);
-      else request.push(idx);
-      renderTradeUI();
-    }
-    function proposeTrade() {
-      if (offer.length === 0 || request.length === 0) {
-        document.getElementById('trade-result').innerText = 'Select at least one pulse from each side!';
-        return;
+      // Elemental Dojo
+      const dojoMoves = [
+        {name: "Elemental Crush", power: 16},
+        {name: "Sonic Wave", power: 13},
+        {name: "Nature Heal", power: 0, heal: 20},
+        {name: "Blizzard Blast", power: 12},
+        {name: "Inferno Kick", power: 15}
+      ];
+      function renderDojo() {
+        let html = "<h3>Teach a new move:</h3><div class='flex'>";
+        myPulses.forEach((p, idx) => {
+          html += `<div class="card"><b>${p.name}</b> Lv.${p.level}<br>
+            Current Moves:<br>
+            1. ${p.attacks[0].name}<br>
+            2. ${p.attacks[1].name}<br>
+            <select id="moveSelect${idx}">${dojoMoves.map(
+              m => `<option value="${m.name}">${m.name}</option>`
+            ).join("")}</select>
+            <button onclick="teachMove(${idx})">Teach</button>
+          </div>`;
+        });
+        html += "</div>";
+        document.getElementById("dojo-content").innerHTML = html;
       }
-      if (myPulses.length - offer.length < 1) {
-        document.getElementById('trade-result').innerText = 'You must keep at least 1 Pulse!';
-        return;
-      }
-      if (myPulses.length - offer.length + request.length > 10) {
-        document.getElementById('trade-result').innerText = 'Max 10 Pulses in collection!';
-        return;
-      }
-      let fairness = 0.5 + 0.15 * (offer.length - request.length) / Math.max(offer.length, request.length);
-      let roll = Math.random();
-      if (roll < fairness) {
-        let offerCards = offer.map(i=>myPulses[i]);
-        let requestCards = request.map(i=>tradedPulses[i]);
-        offer.sort((a,b)=>b-a).forEach(i=>myPulses.splice(i,1));
-        request.sort((a,b)=>b-a).forEach(i=>tradedPulses.splice(i,1));
-        myPulses = myPulses.concat(requestCards);
-        tradedPulses = tradedPulses.concat(offerCards);
+      window.teachMove = function(idx) {
+        let moveName = document.getElementById(`moveSelect${idx}`).value;
+        let move = dojoMoves.find(m => m.name === moveName);
+        if (!move) return;
+        myPulses[idx].attacks[1] = {name: move.name, power: move.power || 0};
         saveGame();
-        document.getElementById('trade-result').innerHTML = "<span style='color:#3ee86a'>Trade accepted!</span>";
-        renderTrade();
-      } else {
-        document.getElementById('trade-result').innerHTML = "<span style='color:#f43'>Trade rejected! Try a fairer offer.</span>";
+        renderMyCards();
+        renderDojo();
+        alert(`${myPulses[idx].name} learned ${move.name}!`);
       }
-    }
 
-    // Elemental Dojo
-    const dojoMoves = [
-      {name: "Elemental Crush", power: 16},
-      {name: "Sonic Wave", power: 13},
-      {name: "Nature Heal", power: 0, heal: 20},
-      {name: "Blizzard Blast", power: 12},
-      {name: "Inferno Kick", power: 15}
-    ];
-    function renderDojo() {
-      let html = "<h3>Teach a new move:</h3><div class='flex'>";
-      myPulses.forEach((p, idx) => {
-        html += `<div class="card"><b>${p.name}</b> Lv.${p.level}<br>
-          Current Moves:<br>
-          1. ${p.attacks[0].name}<br>
-          2. ${p.attacks[1].name}<br>
-          <select id="moveSelect${idx}">${dojoMoves.map(
-            m => `<option value="${m.name}">${m.name}</option>`
-          ).join("")}</select>
-          <button onclick="teachMove(${idx})">Teach</button>
-        </div>`;
-      });
-      html += "</div>";
-      document.getElementById("dojo-content").innerHTML = html;
-    }
-    function teachMove(idx) {
-      let moveName = document.getElementById(`moveSelect${idx}`).value;
-      let move = dojoMoves.find(m => m.name === moveName);
-      if (!move) return;
-      myPulses[idx].attacks[1] = {name: move.name, power: move.power || 0};
-      saveGame();
-      renderMyCards();
-      renderDojo();
-      alert(`${myPulses[idx].name} learned ${move.name}!`);
-    }
+      // CONTRACTS FEATURE
+      const contractBossList = [
+        {
+          boss: {
+            name: "Dread Lord Xarthos", type: "Dark", health: 120, attack: 32, level: 8,
+            attacks: [
+              {name: "Shadow Burst", power: 20},
+              {name: "Soul Crush", power: 18}
+            ]
+          },
+          desc: "Defeat the ancient Dread Lord in the Shadow Crypt.",
+          reward: {xp: 500, msg: "Epic Pulse"}
+        },
+        {
+          boss: {
+            name: "Queen Naga", type: "Poison", health: 95, attack: 28, level: 7,
+            attacks: [
+              {name: "Venom Strike", power: 19},
+              {name: "Tail Lash", power: 14}
+            ]
+          },
+          desc: "Slay the venomous Queen Naga in the Poison Swamp.",
+          reward: {xp: 350, msg: "Rare Pulse"}
+        },
+        {
+          boss: {
+            name: "Titan Mech", type: "Earth", health: 130, attack: 30, level: 9,
+            attacks: [
+              {name: "Titan Punch", power: 23},
+              {name: "Laser Barrage", power: 16}
+            ]
+          },
+          desc: "Destroy the rogue Titan Mech rampaging the city.",
+          reward: {xp: 400, msg: "Titan Pulse"}
+        },
+        {
+          boss: {
+            name: "Emperor Frostmaw", type: "Ice", health: 110, attack: 29, level: 8,
+            attacks: [
+              {name: "Frostbite", power: 17},
+              {name: "Glacial Slam", power: 21}
+            ]
+          },
+          desc: "Crush the Emperor of the Northern Blizzard.",
+          reward: {xp: 375, msg: "Frost Pulse"}
+        },
+        {
+          boss: {
+            name: "Archon Pyraxis", type: "Fire", health: 100, attack: 31, level: 9,
+            attacks: [
+              {name: "Inferno Wave", power: 22},
+              {name: "Molten Crash", power: 19}
+            ]
+          },
+          desc: "Defeat the fiery overlord of the Magma Core.",
+          reward: {xp: 420, msg: "Fire Pulse"}
+        }
+      ];
 
-    // CONTRACTS FEATURE
-    const contractBossList = [
-      {
-        boss: {
-          name: "Dread Lord Xarthos", type: "Dark", health: 120, attack: 32, level: 8,
-          attacks: [
-            {name: "Shadow Burst", power: 20},
-            {name: "Soul Crush", power: 18}
-          ]
-        },
-        desc: "Defeat the ancient Dread Lord in the Shadow Crypt.",
-        reward: {xp: 500, msg: "Epic Pulse"}
-      },
-      {
-        boss: {
-          name: "Queen Naga", type: "Poison", health: 95, attack: 28, level: 7,
-          attacks: [
-            {name: "Venom Strike", power: 19},
-            {name: "Tail Lash", power: 14}
-          ]
-        },
-        desc: "Slay the venomous Queen Naga in the Poison Swamp.",
-        reward: {xp: 350, msg: "Rare Pulse"}
-      },
-      {
-        boss: {
-          name: "Titan Mech", type: "Earth", health: 130, attack: 30, level: 9,
-          attacks: [
-            {name: "Titan Punch", power: 23},
-            {name: "Laser Barrage", power: 16}
-          ]
-        },
-        desc: "Destroy the rogue Titan Mech rampaging the city.",
-        reward: {xp: 400, msg: "Titan Pulse"}
-      },
-      {
-        boss: {
-          name: "Emperor Frostmaw", type: "Ice", health: 110, attack: 29, level: 8,
-          attacks: [
-            {name: "Frostbite", power: 17},
-            {name: "Glacial Slam", power: 21}
-          ]
-        },
-        desc: "Crush the Emperor of the Northern Blizzard.",
-        reward: {xp: 375, msg: "Frost Pulse"}
-      },
-      {
-        boss: {
-          name: "Archon Pyraxis", type: "Fire", health: 100, attack: 31, level: 9,
-          attacks: [
-            {name: "Inferno Wave", power: 22},
-            {name: "Molten Crash", power: 19}
-          ]
-        },
-        desc: "Defeat the fiery overlord of the Magma Core.",
-        reward: {xp: 420, msg: "Fire Pulse"}
+      let currentContractObj = null;
+      let contractBossPulse = null;
+      window.showContracts = function() {
+        hideAll();
+        currentContractObj = contractBossList[Math.floor(Math.random() * contractBossList.length)];
+        document.getElementById("contractDetails").innerHTML = `
+          <div class="contract-boss"><b>${currentContractObj.boss.name}</b> (Lv.${currentContractObj.boss.level} ${currentContractObj.boss.type})</div>
+          <div class="contract-desc">${currentContractObj.desc}</div>
+          <div class="contract-reward"><b>Reward:</b> ${currentContractObj.reward.xp} XP, ${currentContractObj.reward.msg}</div>
+          <div id="contractResult" style="margin-top:10px;"></div>
+        `;
+        document.getElementById("fightContractBtn").style.display = "";
+        document.getElementById("contractsModal").setAttribute("aria-hidden","false");
       }
-    ];
+      window.closeContracts = function() {
+        document.getElementById("contractsModal").setAttribute("aria-hidden","true");
+        showMenu();
+      }
+      document.getElementById("fightContractBtn").onclick = function() {
+        document.getElementById("contractsModal").setAttribute("aria-hidden","true");
+        setupContractBattle();
+      };
 
-    let currentContractObj = null;
-    let contractBossPulse = null;
+      function setupContractBattle() {
+        battle.your = null;
+        contractBossPulse = {...currentContractObj.boss};
+        battle.opp = contractBossPulse;
+        battle.oppHP = contractBossPulse.health + 4 * contractBossPulse.level;
+        battle.turn = 0;
+        battle.inProgress = true;
+        battle.contractMode = true;
+        logBattle(`You accepted a contract: <b>${currentContractObj.boss.name}</b>!`);
+        showBattle();
+        updateBattleUI();
+      }
 
-    function showContracts() {
-      hideAll();
-      currentContractObj = contractBossList[Math.floor(Math.random() * contractBossList.length)];
-      document.getElementById("contractDetails").innerHTML = `
-        <div class="contract-boss"><b>${currentContractObj.boss.name}</b> (Lv.${currentContractObj.boss.level} ${currentContractObj.boss.type})</div>
-        <div class="contract-desc">${currentContractObj.desc}</div>
-        <div class="contract-reward"><b>Reward:</b> ${currentContractObj.reward.xp} XP, ${currentContractObj.reward.msg}</div>
-        <div id="contractResult" style="margin-top:10px;"></div>
-      `;
-      document.getElementById("fightContractBtn").style.display = "";
-      document.getElementById("contractsModal").setAttribute("aria-hidden","false");
-    }
-    function closeContracts() {
-      document.getElementById("contractsModal").setAttribute("aria-hidden","true");
-      showMenu();
-    }
-    document.getElementById("fightContractBtn").onclick = function() {
-      document.getElementById("contractsModal").setAttribute("aria-hidden","true");
-      setupContractBattle();
-    };
-
-    function setupContractBattle() {
-      battle.your = null;
-      contractBossPulse = {...currentContractObj.boss};
-      battle.opp = contractBossPulse;
-      battle.oppHP = contractBossPulse.health + 4 * contractBossPulse.level;
-      battle.turn = 0;
-      battle.inProgress = true;
-      battle.contractMode = true;
-      logBattle(`You accepted a contract: <b>${currentContractObj.boss.name}</b>!`);
-      showBattle();
-      updateBattleUI();
-    }
-
-    function handleContractResult(won) {
-      setTimeout(function() {
-        document.getElementById("contractResultModal").setAttribute("aria-hidden","false");
-        if (won) {
-          document.getElementById("contractResultTitle").innerText = "Victory!";
-          addPlayerXP(currentContractObj.reward.xp);
-          if (myPulses.length < 10) {
-            let rewardPulse = ALL_PULSES.find(p => p.type === currentContractObj.boss.type) || {...ALL_PULSES[Math.floor(Math.random()*ALL_PULSES.length)]};
-            rewardPulse = {...rewardPulse, level: 3 + Math.floor(Math.random()*3)};
-            myPulses.push(rewardPulse);
-            saveGame();
-            document.getElementById("contractResultText").innerHTML = `
-              You defeated <b>${currentContractObj.boss.name}</b> and claimed:<br>
-              <b>${currentContractObj.reward.xp} XP</b><br>
-              <b>New Pulse: ${rewardPulse.name} (Lv.${rewardPulse.level}, ${rewardPulse.type})</b>
-            `;
+      function handleContractResult(won) {
+        setTimeout(function() {
+          document.getElementById("contractResultModal").setAttribute("aria-hidden","false");
+          if (won) {
+            document.getElementById("contractResultTitle").innerText = "Victory!";
+            addPlayerXP(currentContractObj.reward.xp);
+            if (myPulses.length < 10) {
+              let rewardPulse = ALL_PULSES.find(p => p.type === currentContractObj.boss.type) || {...ALL_PULSES[Math.floor(Math.random()*ALL_PULSES.length)]};
+              rewardPulse = {...rewardPulse, level: 3 + Math.floor(Math.random()*3)};
+              myPulses.push(rewardPulse);
+              saveGame();
+              document.getElementById("contractResultText").innerHTML = `
+                You defeated <b>${currentContractObj.boss.name}</b> and claimed:<br>
+                <b>${currentContractObj.reward.xp} XP</b><br>
+                <b>New Pulse: ${rewardPulse.name} (Lv.${rewardPulse.level}, ${rewardPulse.type})</b>
+              `;
+            } else {
+              document.getElementById("contractResultText").innerHTML = `
+                You defeated <b>${currentContractObj.boss.name}</b> and claimed:<br>
+                <b>${currentContractObj.reward.xp} XP</b><br>
+                <span style="color:#faa;">(Pulse storage full, only XP granted)</span>
+              `;
+            }
           } else {
+            document.getElementById("contractResultTitle").innerText = "Defeat...";
             document.getElementById("contractResultText").innerHTML = `
-              You defeated <b>${currentContractObj.boss.name}</b> and claimed:<br>
-              <b>${currentContractObj.reward.xp} XP</b><br>
-              <span style="color:#faa;">(Pulse storage full, only XP granted)</span>
+              You failed to defeat <b>${currentContractObj.boss.name}</b>.<br>
+              Try another contract!
             `;
           }
-        } else {
-          document.getElementById("contractResultTitle").innerText = "Defeat...";
-          document.getElementById("contractResultText").innerHTML = `
-            You failed to defeat <b>${currentContractObj.boss.name}</b>.<br>
-            Try another contract!
-          `;
-        }
-        battle.contractMode = false;
-      }, 200);
-    }
+          battle.contractMode = false;
+        }, 200);
+      }
 
-    function closeContractResult() {
-      document.getElementById("contractResultModal").setAttribute("aria-hidden","true");
-      showMenu();
-    }
+      window.closeContractResult = function() {
+        document.getElementById("contractResultModal").setAttribute("aria-hidden","true");
+        showMenu();
+      }
 
-    // Initial Load
-    loadGame();
-    updateLoader();
-    updatePlayerUI();
-    if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
+      // Initial Load
+      loadGame();
+      updatePlayerUI();
+      if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     };
   </script>
 </body>
