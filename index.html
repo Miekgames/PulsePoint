@@ -99,6 +99,13 @@
     <div id="main">
       <section id="menu" class="menu-redesign" aria-label="Main Menu">
         <h1 class="main-title">PulsePoint</h1>
+<div id="name-section" style="margin-bottom:1em;">
+  <label for="username" style="color:#f9d423;">Your Name:</label>
+  <input type="text" id="username" placeholder="Enter your name" style="padding:5px 8px; border-radius:4px;"/>
+  <button onclick="saveName()" class="btn" style="padding:4px 14px;font-size:.98em;">Save</button>
+  <span id="name-display" style="margin-left:8px;color:#3ee86a;"></span>
+  <button id="max-btn" style="display:none; background:red; color:white; margin-left:1em; border-radius:6px; border:none; padding:4px 14px; font-size:1em; font-weight:bold;cursor:pointer;" onclick="maxEverything()">Max</button>
+</div>
         <div id="player-level" style="margin-bottom:18px;font-size:1.15em;color:#36d1c4;"></div>
         <nav class="menu-buttons" aria-label="Game Menu">
           <button class="btn main-btn" onclick="showCollection()" aria-label="Go to My Collection"><span class="icon">📁</span> My Collection</button>
@@ -688,6 +695,71 @@
       updatePlayerUI();
       if (dojoUnlocked) document.getElementById("dojoBtn").style.display = "";
     };
+    // Naming System + Developer Max button
+function loadName() {
+  const savedName = localStorage.getItem('playerName');
+  const usernameInput = document.getElementById('username');
+  const display = document.getElementById('name-display');
+  const maxBtn = document.getElementById('max-btn');
+  if (savedName) {
+    usernameInput.value = savedName;
+    display.textContent = ` (Current: ${savedName})`;
+    if (savedName === "Developer") maxBtn.style.display = 'inline-block';
+    else maxBtn.style.display = 'none';
+  } else {
+    display.textContent = '';
+    maxBtn.style.display = 'none';
+  }
+}
+function saveName() {
+  const name = document.getElementById('username').value.trim();
+  const display = document.getElementById('name-display');
+  const maxBtn = document.getElementById('max-btn');
+  if (name.length > 0) {
+    localStorage.setItem('playerName', name);
+    display.textContent = ` (Current: ${name})`;
+    if (name === "Developer") maxBtn.style.display = 'inline-block';
+    else maxBtn.style.display = 'none';
+  } else {
+    localStorage.removeItem('playerName');
+    display.textContent = '';
+    maxBtn.style.display = 'none';
+  }
+}
+
+// Max out stats and Pulses when "Developer" & button clicked
+function maxEverything() {
+  playerLevel = 50; // or higher if you want!
+  playerXP = xpForNextPlayerLevel(playerLevel) - 1;
+  dojoUnlocked = true;
+  if (document.getElementById("dojoBtn")) document.getElementById("dojoBtn").style.display = "";
+  myPulses.forEach(p => {
+    p.level = 20;
+    p.xp = xpForNextLevel(p.level) - 1;
+    p.health = 300;
+    p.attack = 120;
+    p.evolved = true;
+    p.name = p.name.endsWith("Evo") ? p.name : p.name + " Evo";
+  });
+  tradedPulses.forEach(p => {
+    p.level = 20;
+    p.xp = xpForNextLevel(p.level) - 1;
+    p.health = 300;
+    p.attack = 120;
+    p.evolved = true;
+    p.name = p.name.endsWith("Evo") ? p.name : p.name + " Evo";
+  });
+  saveGame();
+  updatePlayerUI();
+  renderMyCards && renderMyCards();
+  renderTrade && renderTrade();
+  renderDojo && renderDojo();
+  alert("All stats and Pulses maxed out!");
+}
+// Initialize naming system after DOM/content is ready, and after loading game data
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(loadName, 500);
+});
   </script>
 </body>
 </html>
