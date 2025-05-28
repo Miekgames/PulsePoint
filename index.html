@@ -728,18 +728,19 @@ function saveName() {
 }
 
 // Max out stats and Pulses when "Developer" & button clicked
-function maxEverything() {
-  playerLevel = 50; // or higher if you want!
+window.maxEverything = function() {
+  playerLevel = 50;
   playerXP = xpForNextPlayerLevel(playerLevel) - 1;
   dojoUnlocked = true;
   if (document.getElementById("dojoBtn")) document.getElementById("dojoBtn").style.display = "";
+
   myPulses.forEach(p => {
     p.level = 20;
     p.xp = xpForNextLevel(p.level) - 1;
     p.health = 300;
     p.attack = 120;
     p.evolved = true;
-    p.name = p.name.endsWith("Evo") ? p.name : p.name + " Evo";
+    if (!p.name.endsWith("Evo")) p.name += " Evo";
   });
   tradedPulses.forEach(p => {
     p.level = 20;
@@ -747,15 +748,16 @@ function maxEverything() {
     p.health = 300;
     p.attack = 120;
     p.evolved = true;
-    p.name = p.name.endsWith("Evo") ? p.name : p.name + " Evo";
+    if (!p.name.endsWith("Evo")) p.name += " Evo";
   });
+
   saveGame();
-  updatePlayerUI();
+  updatePlayerUI && updatePlayerUI();
   renderMyCards && renderMyCards();
   renderTrade && renderTrade();
   renderDojo && renderDojo();
   alert("All stats and Pulses maxed out!");
-}
+};
 // Initialize naming system after DOM/content is ready, and after loading game data
 window.addEventListener('DOMContentLoaded', function() {
   setTimeout(loadName, 500);
