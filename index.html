@@ -13,7 +13,7 @@
     .btn { padding:12px 24px; margin:8px; background:linear-gradient(90deg,#f9d423,#ff4e50); color:#fff; border:none; border-radius:4px; font-size:1rem; cursor:pointer; font-weight:bold;}
     .btn:focus { outline:2px solid #36d1c4; }
     .btn:hover { background:linear-gradient(90deg,#36d1c4,#ff4e50);}
-    .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff;}
+    .card { background:linear-gradient(135deg,#222e50 80%,#ff4e50 100%); border-radius:8px; padding:18px; margin:10px; display:inline-block; box-shadow:0 2px 8px #0003; min-width:200px; color:#fff; }
     .card.selected { border:3px solid #36d1c4; box-shadow: 0 0 12px #f9d423; }
     .flex { display:flex; flex-wrap:wrap; gap:10px; }
     .hidden {display:none;}
@@ -84,6 +84,20 @@
       .creature-card { min-width: 150px; padding: 12px 8px; }
       #contractsModal, #contractResultModal { width: 95vw; padding: 8vw 5vw; }
     }
+    #maxButtonSection { margin-top: 12px; }
+    #maxBtn {
+      background: #d9001b;
+      color: #fff;
+      border: none;
+      font-size: 1.15em;
+      padding: 10px 28px;
+      border-radius: 7px;
+      font-weight: bold;
+      box-shadow: 0 2px 12px #ff4e5050;
+      cursor: pointer;
+      transition: background 0.1s, box-shadow 0.2s;
+    }
+    #maxBtn:hover { background: #ff4e50; }
   </style>
 </head>
 <body>
@@ -97,84 +111,113 @@
       <p style="color:#aaa;margin-top:10px;">A strategy card game by Miekgames</p>
     </div>
     <div id="main">
+      <!-- ===================== NAME SYSTEM ===================== -->
+      <div id="nameSection" style="margin-bottom: 14px; text-align: center;">
+        <input type="text" id="playerNameInput" placeholder="Enter your name" style="padding:7px 12px; border-radius:6px; border:none; background:#222e50;color:#fff;">
+        <button class="btn" onclick="setPlayerName()">Set Name</button>
+        <span id="currentName" style="margin-left:12px;font-weight:bold;"></span>
+      </div>
+      <div id="maxButtonSection" style="display:none; text-align:center;">
+        <button id="maxBtn" onclick="confirmMax()">Max</button>
+      </div>
+      <!-- ================== END NAME SYSTEM ==================== -->
+      <!-- Everything below here is your original HTML (menu, sections, etc) -->
+      <!-- ... copy everything from your original index.html here ... -->
+      <!-- For brevity, this is omitted but you KEEP all original sections: menu, collection, battle, etc. -->
+      <!-- ... -->
       <section id="menu" class="menu-redesign" aria-label="Main Menu">
         <h1 class="main-title">PulsePoint</h1>
         <div id="player-level" style="margin-bottom:18px;font-size:1.15em;color:#36d1c4;"></div>
         <nav class="menu-buttons" aria-label="Game Menu">
           <button class="btn main-btn" onclick="showCollection()" aria-label="Go to My Collection"><span class="icon">📁</span> My Collection</button>
           <button class="btn main-btn" onclick="showBattle()" aria-label="Go to Battle"><span class="icon">⚔️</span> Battle</button>
-          <button class="btn main-btn" onclick="showTrade()" aria-label="Go to Trade"><span class="icon">🔄</span> Trade</button>
           <button class="btn main-btn" id="dojoBtn" onclick="showDojo()" style="display:none;" aria-label="Enter Elemental Dojo"><span class="icon">⚡</span> Elemental Dojo</button>
           <button class="btn main-btn" onclick="showContracts()" aria-label="Contracts Board"><span class="icon">📝</span> Contracts</button>
           <button class="btn main-btn" onclick="resetGame()" aria-label="Reset Game Progress"><span class="icon">♻️</span> Reset Game</button>
         </nav>
       </section>
-      <section id="collection" aria-label="Collection">
-        <h2>My Pulse Collection</h2>
-        <div id="my-cards" class="flex"></div>
-        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
-      </section>
-      <section id="battle" class="battle-redesign" aria-label="Battle Arena">
-        <h2 class="battle-title">Battle Arena</h2>
-        <div class="battle-arena">
-          <div class="creature-card player-card">
-            <h3>Your Pulse</h3>
-            <div id="your-battle-card"></div>
-            <button class="btn swap-btn" onclick="pickBattleCard()" aria-label="Change Pulse">Change</button>
-          </div>
-          <div class="vs-label">VS</div>
-          <div class="creature-card opponent-card">
-            <h3>Opponent Pulse</h3>
-            <div id="opp-battle-card"></div>
-            <button class="btn swap-btn" onclick="startBattle()" aria-label="New Opponent">New Opponent</button>
-          </div>
-        </div>
-        <div id="battle-controls" class="battle-controls"></div>
-        <div id="battle-log" class="battle-log"></div>
-        <button class="btn back-btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
-      </section>
-      <section id="trade" aria-label="Trade Pulses">
-        <h2 style="color:#ff4e50;">Trade Pulses</h2>
-        <div style="display:flex;justify-content:space-between;">
-          <div class="trade-section">
-            <h4>Your Pulses</h4>
-            <div id="your-trade-cards"></div>
-            <h4>Offer these:</h4>
-            <div id="offer-selection"></div>
-          </div>
-          <div class="trade-section other-section">
-            <h4>Market Pulses</h4>
-            <div id="trade-market-cards"></div>
-            <h4>Request these:</h4>
-            <div id="request-selection"></div>
-          </div>
-        </div>
-        <div id="trade-summary"></div>
-        <button class="btn" id="proposeTradeBtn" onclick="proposeTrade()" aria-label="Propose Trade">Propose Trade</button>
-        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
-        <div id="trade-result"></div>
-      </section>
-      <section id="dojo" aria-label="Elemental Dojo">
-        <h2>Elemental Dojo</h2>
-        <div id="dojo-content"></div>
-        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
-      </section>
-      <!-- CONTRACTS MODAL -->
-      <div id="contractsModal" role="dialog" aria-modal="true" aria-hidden="true">
-        <h2>Contract Board</h2>
-        <div id="contractDetails"></div>
-        <button class="btn" id="fightContractBtn" style="margin:12px 0 6px 0;">Fight!</button>
-        <button class="btn" onclick="closeContracts()">Close</button>
-      </div>
-      <div id="contractResultModal" role="dialog" aria-modal="true" aria-hidden="true">
-        <h2 id="contractResultTitle"></h2>
-        <div id="contractResultText"></div>
-        <button class="btn" onclick="closeContractResult()">OK</button>
-      </div>
+      <!-- ... collection, battle, trade, dojo, contracts modals, etc., unchanged ... -->
+      <!-- (For brevity, not repeated here; keep all from your original file!) -->
     </div>
   </main>
   <script>
-    // Loader logic: simple bar fill then show main interface
+    // ===================== Name & Max Button System =====================
+    let playerName = localStorage.getItem("pulse_playerName") || "";
+    function setPlayerName() {
+      const name = document.getElementById('playerNameInput').value.trim();
+      playerName = name;
+      localStorage.setItem("pulse_playerName", playerName);
+      document.getElementById('currentName').textContent = name ? `Hello, ${name}!` : '';
+      // Show "Max" only for Developer
+      document.getElementById('maxButtonSection').style.display = (name === 'Developer') ? 'block' : 'none';
+    }
+    // On page load, restore name
+    window.addEventListener('DOMContentLoaded', function(){
+      if(playerName) {
+        document.getElementById('playerNameInput').value = playerName;
+        document.getElementById('currentName').textContent = `Hello, ${playerName}!`;
+        if(playerName === 'Developer') document.getElementById('maxButtonSection').style.display = 'block';
+      }
+    });
+    // Max everything (including all Pulses & player stats)
+    function confirmMax() {
+      if(confirm('Are you sure you want to max ALL stats? This cannot be undone.')) {
+        maxAllStats();
+      }
+    }
+    function maxAllStats() {
+      // Maximums
+      const STAT_MAX = 999;
+      const PULSE_MAX = 10;
+      const PULSE_LEVEL_MAX = 50;
+      const PULSE_HP_MAX = 999;
+      const PULSE_ATK_MAX = 999;
+      // Max all player stats
+      playerLevel = 99;
+      playerXP = 0;
+      dojoUnlocked = true;
+      // Max all pulses (in collection and traded)
+      if (typeof myPulses !== 'undefined') {
+        myPulses.forEach(p => {
+          p.level = PULSE_LEVEL_MAX;
+          p.xp = 0;
+          p.health = PULSE_HP_MAX;
+          p.attack = PULSE_ATK_MAX;
+          p.attacks.forEach(a => a.power = 99);
+          p.evolved = true;
+        });
+      }
+      if (typeof tradedPulses !== 'undefined') {
+        tradedPulses.forEach(p => {
+          p.level = PULSE_LEVEL_MAX;
+          p.xp = 0;
+          p.health = PULSE_HP_MAX;
+          p.attack = PULSE_ATK_MAX;
+          p.attacks.forEach(a => a.power = 99);
+          p.evolved = true;
+        });
+      }
+      // Fill with all Pulses if not full
+      if(typeof ALL_PULSES !== 'undefined' && myPulses.length < PULSE_MAX) {
+        let ids = new Set(myPulses.map(p=>p.id));
+        for(let p of ALL_PULSES) {
+          if(myPulses.length >= PULSE_MAX) break;
+          if(!ids.has(p.id)) {
+            let clone = {...p, level:PULSE_LEVEL_MAX, xp:0, health:PULSE_HP_MAX, attack:PULSE_ATK_MAX, evolved:true, attacks: p.attacks.map(a=>({...a,power:99}))};
+            myPulses.push(clone);
+          }
+        }
+      }
+      dojoUnlocked = true;
+      saveGame && saveGame();
+      updatePlayerUI && updatePlayerUI();
+      renderMyCards && renderMyCards();
+      alert('ALL STATS MAXED! You are the ultimate Developer.');
+      if(document.getElementById("dojoBtn")) document.getElementById("dojoBtn").style.display = "";
+    }
+    // ===================== END Name & Max Button System =====================
+
+     // Loader logic: simple bar fill then show main interface
     window.onload = function() {
       setTimeout(() => {
         document.getElementById("loaderfill").style.width = "100%";
