@@ -27,15 +27,15 @@
     #trade-summary { margin:14px 0 4px 0; font-size:1.1em;}
     #trade-result { font-size:1.1em; height:24px;}
     .main-title { font-size: 3em; letter-spacing: 0.05em; margin-bottom: 36px; color: #ff4e50; text-shadow: 0 2px 12px #222;}
-    .menu-redesign { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh; background: rgba(24,28,43,0.97); border-radius: 18px; box-shadow: 0 6px 36px #000a; padding: 50px 32px;}
+    .menu-redesign { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh; background: rgba(24,28,43,0.97); border-radius: 18px; box-shadow: 0 6px 36px #000a; padding: 36px 24px; }
     .menu-buttons { display: flex; flex-direction: column; gap: 18px; width: 100%;}
-    .main-btn { font-size: 1.3em; padding: 18px 32px; border-radius: 12px; background: linear-gradient(90deg,#36d1c4,#ff4e50); color: #fff; border: none; box-shadow: 0 2px 18px #2224; font-weight: bold; display: flex; align-items: center; gap: 16px; transition: transform 0.1s, box-shadow 0.2s;}
+    .main-btn { font-size: 1.3em; padding: 18px 32px; border-radius: 12px; background: linear-gradient(90deg,#36d1c4,#ff4e50); color: #fff; border: none; box-shadow: 0 2px 18px #2224; font-weight:bold;}
     .main-btn:hover, .main-btn:focus { transform: scale(1.06); box-shadow: 0 4px 24px #ff4e5055; }
     .icon { font-size: 1.1em; }
     .battle-redesign { display: flex; flex-direction: column; align-items: center; }
     .battle-title { color: #f9d423; margin-bottom: 18px; font-size: 2.2em; }
     .battle-arena { display: flex; align-items: flex-start; justify-content: center; gap: 48px; margin-bottom: 24px;}
-    .creature-card { background: linear-gradient(120deg,#222e50 80%,#36d1c4 100%); border-radius: 14px; box-shadow: 0 2px 16px #0006; padding: 24px 28px; color: #fff; min-width: 220px; text-align: center;}
+    .creature-card { background: linear-gradient(120deg,#222e50 80%,#36d1c4 100%); border-radius: 14px; box-shadow: 0 2px 16px #0006; padding: 24px 28px; color: #fff; min-width: 220px; text-align:center; }
     .player-card { border: 2.5px solid #f9d423; }
     .opponent-card { border: 2.5px solid #ff4e50; }
     .vs-label { font-size: 2em; color: #fff; margin: 0 18px; align-self: center; }
@@ -47,7 +47,7 @@
     #dojo-content select { width:140px; margin:7px 0; }
     #loaderbar { background:#333;width:300px;height:12px;border-radius:8px;overflow:hidden; }
     #loaderfill { background:#f6b93b;width:0;height:100%; transition:width 0.4s;}
-    .modal { display:none; position: fixed; top: 8vh; left: 50%; transform: translateX(-50%); background: #222e50; border: 3px solid #f9d423; border-radius: 18px; box-shadow: 0 4px 24px #000b; z-index: 2000; color: #fff; width:420px; max-width:98vw; padding:32px 30px 24px 30px; text-align:center;}
+    .modal { display:none; position: fixed; top: 8vh; left: 50%; transform: translateX(-50%); background: #222e50; border: 3px solid #f9d423; border-radius: 18px; box-shadow: 0 4px 24px #000b; z-index: 100; padding: 30px 24px; width: 420px; max-width: 94vw;}
     .modal[aria-hidden="false"] { display:block; }
     .close-btn { position:absolute; top:14px; right:16px; background:none; border:none; color:#f9d423; font-size:1.18em; cursor:pointer;}
     @media (max-width: 750px) {
@@ -69,13 +69,13 @@
     </div>
     <div id="main">
       <section id="menu" class="menu-redesign" aria-label="Main Menu">
-      <h1>PulsePoint</h1>
+        <h1>PulsePoint</h1>
         <div id="name-section" style="margin-bottom:1em;">
           <label for="username" style="color:#f9d423;">Your Name:</label>
           <input type="text" id="username" placeholder="Enter your name" style="padding:5px 8px; border-radius:4px;"/>
           <button onclick="saveName()" class="btn" style="padding:4px 14px;font-size:.98em;">Save</button>
           <span id="name-display" style="margin-left:8px;color:#3ee86a;"></span>
-          <button id="max-btn" style="display:none; background:red; color:white; margin-left:1em; border-radius:6px; border:none; padding:4px 14px; font-size:1em; font-weight:bold;cursor:pointer;" onclick="maxEverything()">Max</button>
+          <button id="max-btn" style="display:none; background:red; color:white; margin-left:1em; border-radius:6px; border:none; padding:4px 14px; font-size:1em; font-weight:bold;cursor:pointer;">MAX</button>
         </div>
         <div id="player-level" style="margin-bottom:10px;font-size:1.15em;color:#36d1c4;"></div>
         <div id="player-coins" style="margin-bottom:10px;font-size:1.1em;color:#ffd700;"></div>
@@ -118,6 +118,33 @@
         <div id="battle-log" class="battle-log"></div>
         <button class="btn back-btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
       </section>
+      <section id="trade" aria-label="Trade Pulses">
+        <h2 style="color:#ff4e50;">Trade Pulses</h2>
+        <div style="display:flex;justify-content:space-between;">
+          <div class="trade-section">
+            <h4>Your Pulses</h4>
+            <div id="your-trade-cards"></div>
+            <h4>Offer these:</h4>
+            <div id="offer-selection"></div>
+          </div>
+          <div class="trade-section other-section">
+            <h4>Market Pulses</h4>
+            <div id="trade-market-cards"></div>
+            <h4>Request these:</h4>
+            <div id="request-selection"></div>
+          </div>
+        </div>
+        <div id="trade-summary"></div>
+        <button class="btn" id="proposeTradeBtn" onclick="proposeTrade()" aria-label="Propose Trade">Propose Trade</button>
+        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
+        <div id="trade-result"></div>
+      </section>
+      <section id="dojo" aria-label="Elemental Dojo">
+        <h2>Elemental Dojo</h2>
+        <div id="dojo-content"></div>
+        <button class="btn" onclick="showMenu()" aria-label="Back to Menu">Back</button>
+      </section>
+        </section>
       <section id="trade" aria-label="Trade Pulses">
         <h2 style="color:#ff4e50;">Trade Pulses</h2>
         <div style="display:flex;justify-content:space-between;">
@@ -197,7 +224,7 @@
     </div>
   </main>
   <script>
-    function hideAllModals() {
+  function hideAllModals() {
       ["shopModal","achievementsModal","statsModal","settingsModal","helpModal"].forEach(id=>document.getElementById(id).setAttribute("aria-hidden","true"));
     }
     let theme = localStorage.getItem("pulse_theme")||"dark";
